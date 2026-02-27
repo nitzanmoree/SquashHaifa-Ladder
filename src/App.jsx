@@ -6,7 +6,7 @@ import { Trophy, BookOpen, ShieldCheck, UserPlus, Phone, Trash2, Check, RefreshC
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
-  apiKey: "AIzaSyDlutJy-vxBJy8g-C6TM2iFbRmA9I5B5vw", 
+  apiKey: "AIzaSyD1utJy-vxBJy8g-C6TM2iFbRmA9I5B5vw", 
   authDomain: "haifasquash-ladder.firebaseapp.com",
   projectId: "haifasquash-ladder",
   storageBucket: "haifasquash-ladder.firebasestorage.app",
