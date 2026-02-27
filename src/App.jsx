@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Phone, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Phone, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info } from 'lucide-react';
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
@@ -27,7 +27,12 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Admin Login States
+  const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [adminLoginError, setAdminLoginError] = useState(false);
+
   const [matchModal, setMatchModal] = useState({ isOpen: false, opponent: null });
 
   // שינוי שם הטאב בדפדפן
@@ -159,8 +164,11 @@ export default function App() {
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    if (adminPassword === 'admin123') {
+    if (adminUsername === 'admin' && adminPassword === 'squash2026') {
       setIsAdmin(true);
+      setAdminLoginError(false);
+    } else {
+      setAdminLoginError(true);
     }
   };
 
@@ -176,7 +184,7 @@ export default function App() {
   };
 
   const adminDeletePlayer = async (playerId) => {
-    if (window.confirm("האם אתה בטוח שברצונך למחוק שחקן זה?")) {
+    if (window.confirm("האם אתה בטוח שברצונך למחוק שחקן זה? המחיקה הינה סופית.")) {
       try {
         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', playerId));
       } catch (err) {
@@ -300,7 +308,7 @@ export default function App() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       
       {/* Hero Header */}
-      <div className="text-center pt-8 pb-4 relative">
+      <div className="text-center pt-8 pb-2 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#E020A3]/20 rounded-full blur-[60px] z-0"></div>
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#E020A3] mb-6 shadow-[0_0_30px_rgba(224,32,163,0.5)] relative z-10">
           <Trophy size={40} className="text-white" />
@@ -308,23 +316,41 @@ export default function App() {
         <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#A594BA] mb-2 relative z-10 drop-shadow-sm">
           סקווש חיפה
         </h1>
-        <p className="text-[#A594BA] relative z-10 font-medium tracking-wide">הסולם מחכה לך. הגיע הזמן להוכיח.</p>
+        <p className="text-[#A594BA] relative z-10 font-medium tracking-wide">הצטרפו לסולם הדירוג הרשמי</p>
       </div>
 
-      {/* Rules Mini-Card */}
-      <div className="bg-white/5 backdrop-blur-md rounded-[24px] p-5 border border-white/10 flex gap-4 items-center">
-        <div className="bg-gradient-to-br from-[#8A2BE2]/20 to-[#E020A3]/20 p-3 rounded-full border border-[#E020A3]/30">
-          <ChevronUp className="text-[#E020A3]" size={24} />
+      {/* Comprehensive Rules / About Section (Pre-login) */}
+      <div className="bg-white/5 backdrop-blur-xl rounded-[32px] p-7 border border-white/10 shadow-xl relative z-10 text-right">
+        <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-4">
+          <div className="bg-[#8A2BE2]/20 p-2 rounded-full text-[#8A2BE2]">
+            <Info size={24} />
+          </div>
+          <h2 className="text-xl font-black text-white">איך הליגה עובדת?</h2>
         </div>
-        <div className="text-right">
-          <h3 className="font-bold text-white mb-1">איך זה עובד?</h3>
-          <p className="text-sm text-[#A594BA] leading-tight">נרשמים בתחתית. מאתגרים עד 3 שלבים מעליך. ניצחת? לקחת להם את המקום!</p>
-        </div>
+        
+        <p className="text-[#A594BA] text-sm mb-4 leading-relaxed">
+          הליגה מבוססת על <strong className="text-white">מודל ההחלפה (Leapfrog)</strong> הדינמי. אין צבירת נקודות - פשוט מנצחים ולוקחים את המקום!
+        </p>
+
+        <ul className="space-y-4 text-sm text-[#A594BA]">
+          <li className="flex items-start gap-3">
+            <span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">1</span>
+            <div><strong className="text-white">נרשמים:</strong> כל שחקן חדש מצטרף אוטומטית לתחתית הרשימה.</div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">2</span>
+            <div><strong className="text-white">מאתגרים:</strong> באפשרותך לאתגר שחקנים שמדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליך (באמצעות כפתור הוואטסאפ). שחקן שאותגר חייב להסכים ולשחק.</div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">3</span>
+            <div><strong className="text-white">מנצחים ועולים:</strong> ניצחת את המשחק? אתה <strong className="text-white">לוקח את המיקום</strong> של המפסיד! הוא וכל מי שמתחתיו יורדים שלב אחד. הפסדת? הדירוג נשאר ללא שינוי.</div>
+          </li>
+        </ul>
       </div>
 
       {/* Join Form */}
-      <div className="bg-white/5 backdrop-blur-xl p-7 rounded-[32px] shadow-2xl border border-white/10 relative overflow-hidden">
-        <h2 className="text-2xl font-black text-white mb-6">הצטרפות לליגה</h2>
+      <div className="bg-gradient-to-br from-[#0A0410]/80 to-[#1B0B2E]/80 backdrop-blur-xl p-7 rounded-[32px] shadow-2xl border border-[#E020A3]/30 relative overflow-hidden">
+        <h2 className="text-2xl font-black text-white mb-6">הצטרפות מהירה</h2>
         
         <form onSubmit={handleJoin} className="space-y-5 relative z-10">
           <div>
@@ -338,10 +364,10 @@ export default function App() {
             <input required type="tel" name="phone" 
               className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all placeholder-[#A594BA]/50" 
               placeholder="050-0000000" />
-            <p className="text-xs text-[#A594BA]/70 mt-2">* משמש רק לאתגור למשחקים.</p>
+            <p className="text-xs text-[#A594BA]/70 mt-2">* משמש את חברי הליגה כדי לתאם איתך משחקים.</p>
           </div>
           <button type="submit" className="w-full bg-gradient-to-r from-[#8A2BE2] to-[#E020A3] text-white font-black text-lg py-4 rounded-full transition-all shadow-[0_8px_25px_rgba(224,32,163,0.4)] hover:shadow-[0_8px_35px_rgba(224,32,163,0.6)] active:scale-95 mt-4">
-            הכנס אותי למשחק
+            הכנס אותי לסולם
           </button>
         </form>
       </div>
@@ -372,7 +398,7 @@ export default function App() {
           </h3>
           <ul className="list-disc pr-6 space-y-2 text-sm">
             <li>ניתן לאתגר שחקנים שמדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליך.</li>
-            <li>שחקן שאותגר חייב לקבל את האתגר ולשחק תוך 7 ימים.</li>
+            <li>שחקן שאותגר חייב לקבל את האתגר ולשחק תוך 7 ימים (או לפי מה שסוכם מול המועדון). סירוב לא מוצדק עשוי להוביל להפסד טכני.</li>
           </ul>
         </div>
 
@@ -382,9 +408,9 @@ export default function App() {
             משחקים ותוצאות
           </h3>
           <ul className="list-disc pr-6 space-y-2 text-sm">
-            <li>המשחקים משוחקים בשיטת "הטוב מ-5".</li>
-            <li><strong className="text-white">ניצחון של מאתגר:</strong> לוקח את המיקום של המפסיד. כל השאר יורדים שלב.</li>
-            <li><strong className="text-white">ניצחון של מדורג גבוה:</strong> הדירוג נשאר ללא שינוי.</li>
+            <li>המשחקים משוחקים בשיטת "הטוב מ-5" מערכות.</li>
+            <li><strong className="text-white">ניצחון של מאתגר:</strong> מבצע "קפיצת צפרדע". המנצח לוקח את המיקום של המפסיד. המפסיד וכל מי שביניהם יורדים שלב אחד למטה.</li>
+            <li><strong className="text-white">ניצחון של מדורג גבוה:</strong> הדירוג נשאר ללא שינוי, השחקן הגן על מיקומו בהצלחה.</li>
           </ul>
         </div>
       </div>
@@ -398,16 +424,31 @@ export default function App() {
           <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-[#FF0055] to-[#E020A3]"></div>
           <ShieldCheck size={56} className="text-[#FF0055] mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]" />
           <h2 className="text-2xl font-black text-white mb-2">אזור מנהלים</h2>
-          <p className="text-[#A594BA] text-sm mb-6">נא להזין קוד גישה</p>
+          <p className="text-[#A594BA] text-sm mb-6">נא להזין פרטי גישה</p>
+          
           <form onSubmit={handleAdminLogin} className="space-y-4">
+            <input 
+              type="text" 
+              value={adminUsername}
+              onChange={(e) => setAdminUsername(e.target.value)}
+              placeholder="שם משתמש" 
+              className="w-full px-5 py-4 bg-[#0A0410]/50 border border-white/10 rounded-2xl text-center text-white focus:border-[#FF0055] focus:outline-none transition-colors"
+            />
             <input 
               type="password" 
               value={adminPassword}
               onChange={(e) => setAdminPassword(e.target.value)}
-              placeholder="••••••••" 
-              className="w-full px-5 py-4 bg-[#0A0410]/50 border border-white/10 rounded-2xl text-center text-white focus:border-[#FF0055] focus:outline-none tracking-[0.5em]"
+              placeholder="סיסמה" 
+              className="w-full px-5 py-4 bg-[#0A0410]/50 border border-white/10 rounded-2xl text-center text-white focus:border-[#FF0055] focus:outline-none tracking-[0.3em] transition-colors"
             />
-            <button type="submit" className="w-full bg-[#FF0055]/10 hover:bg-[#FF0055]/20 text-[#FF0055] border border-[#FF0055]/50 font-black py-4 rounded-full transition-colors active:scale-95">
+            
+            {adminLoginError && (
+              <div className="text-[#FF0055] text-sm font-bold bg-[#FF0055]/10 p-2 rounded-lg">
+                שם משתמש או סיסמה שגויים
+              </div>
+            )}
+
+            <button type="submit" className="w-full bg-[#FF0055]/10 hover:bg-[#FF0055]/20 text-[#FF0055] border border-[#FF0055]/50 font-black py-4 rounded-full transition-colors active:scale-95 mt-2">
               היכנס למערכת
             </button>
           </form>
