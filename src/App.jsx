@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Phone, Trash2, Check, RefreshCw } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Phone, Trash2, Check, RefreshCw, AlertTriangle } from 'lucide-react';
 
 // --- Firebase Initialization ---
-// כאן מוזנים הנתונים האישיים של הפרויקט שלך
-const firebaseConfig = {
-  apiKey: "AIzaSyDlutJy-vxBJy8g-C6TM2iFbRmA9I5B5vw",
+const fallbackConfig = {
+  // ⚠️ שים לב: המפתח כאן כנראה חלקי. 
+  // אנא היכנס ל-Firebase Console -> Project settings -> גלול למטה והעתק את ה-apiKey המלא!
+  apiKey: "AIzaSyDlutJy-vxBJy8g-C6TM2iFbRmA9I5B5vw", 
   authDomain: "haifasquash-ladder.firebaseapp.com",
   projectId: "haifasquash-ladder",
   storageBucket: "haifasquash-ladder.firebasestorage.app",
@@ -15,16 +16,19 @@ const firebaseConfig = {
   appId: "1:553434079367:web:0b284761f96b271d261822"
 };
 
+// בודק אם אנחנו בסביבת תצוגה מקדימה או בסביבה האמיתית (StackBlitz/Vercel)
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = 'haifasquash-ladder';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'haifasquash-ladder';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [players, setPlayers] = useState([]);
-  const [view, setView] = useState('ladder'); // 'ladder', 'rules', 'admin', 'join'
+  const [view, setView] = useState('ladder');
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [matchModal, setMatchModal] = useState({ isOpen: false, opponent: null });
@@ -40,6 +44,8 @@ export default function App() {
         }
       } catch (err) {
         console.error("Auth error:", err);
+        setAuthError(err.message);
+        setLoading(false);
       }
     };
     initAuth();
@@ -54,7 +60,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    // הגדרת נתיב מסד הנתונים
+    // נתיב מעודכן שעובד גם בסביבת הטסטים וגם באוויר
     const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
     
     const unsubscribePlayers = onSnapshot(playersRef, (snapshot) => {
@@ -63,12 +69,10 @@ export default function App() {
         ...doc.data()
       }));
       
-      // מיון לפי דירוג (1 הוא הכי גבוה)
       playersData.sort((a, b) => a.rank - b.rank);
       setPlayers(playersData);
       setLoading(false);
       
-      // בדיקה אם המשתמש רשום
       const isRegistered = playersData.some(p => p.id === user.uid);
       if (!isRegistered && view !== 'rules' && view !== 'admin') {
         setView('join');
@@ -78,6 +82,7 @@ export default function App() {
 
     }, (error) => {
       console.error("Error fetching players:", error);
+      setAuthError(error.message);
       setLoading(false);
     });
 
@@ -90,7 +95,6 @@ export default function App() {
     const name = e.target.name.value;
     const phone = e.target.phone.value;
     
-    // שחקן חדש נכנס לתחתית הסולם
     const newRank = players.length > 0 ? Math.max(...players.map(p => p.rank)) + 1 : 1;
     
     try {
@@ -114,12 +118,10 @@ export default function App() {
     if (!winner || !loser) return;
 
     try {
-      // לוגיקת החלפה (Leapfrog): אם המנצח מדורג נמוך מהמפסיד
       if (winner.rank > loser.rank) {
         const newWinnerRank = loser.rank;
         const oldWinnerRank = winner.rank;
 
-        // דוחפים את כולם שלב אחד למטה
         for (const p of players) {
           if (p.rank >= newWinnerRank && p.rank < oldWinnerRank) {
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', p.id), {
@@ -128,13 +130,11 @@ export default function App() {
           }
         }
         
-        // מעדכנים את המנצח למיקום החדש
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', winnerId), {
           rank: newWinnerRank,
           lastActive: new Date().toISOString()
         });
       } else {
-        // המדורג גבוה ניצח, רק מעדכנים פעילות
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', winnerId), {
           lastActive: new Date().toISOString()
         });
@@ -156,7 +156,6 @@ export default function App() {
     window.open(`https://wa.me/${finalPhone}?text=${text}`, '_blank');
   };
 
-  // --- Admin Actions ---
   const handleAdminLogin = (e) => {
     e.preventDefault();
     if (adminPassword === 'admin123') {
@@ -185,7 +184,7 @@ export default function App() {
     }
   };
 
-  // --- Render Views ---
+  // --- Views ---
   const renderLadder = () => {
     const myPlayer = players.find(p => p.id === user?.uid);
     
@@ -274,23 +273,15 @@ export default function App() {
         <BookOpen className="text-blue-600" />
         חוקי הליגה - מודל ההחלפה
       </h2>
-      
       <h3 className="font-bold text-lg mt-4 text-blue-800">1. אתגר שחקנים</h3>
       <ul className="list-disc pr-5 space-y-1">
         <li>ניתן לאתגר שחקנים שמדורגים עד <strong>3 שלבים</strong> מעליך.</li>
         <li>שחקן שאותגר חייב לקבל את האתגר ולשחק תוך 7 ימים.</li>
       </ul>
-
       <h3 className="font-bold text-lg mt-4 text-blue-800">2. משחקים ותוצאות</h3>
       <ul className="list-disc pr-5 space-y-1">
         <li>המשחקים משוחקים בשיטת "הטוב מ-5".</li>
         <li><strong>ניצחון של מאתגר:</strong> לוקח את המיקום של המפסיד. כל השאר יורדים שלב.</li>
-        <li><strong>ניצחון של מדורג גבוה:</strong> הדירוג נשאר ללא שינוי.</li>
-      </ul>
-
-      <h3 className="font-bold text-lg mt-4 text-blue-800">3. חוסר פעילות</h3>
-      <ul className="list-disc pr-5 space-y-1">
-        <li>חוסר פעילות של 14 ימים יגרור ירידה של 2 שלבים בדירוג.</li>
       </ul>
     </div>
   );
@@ -316,69 +307,72 @@ export default function App() {
         </div>
       );
     }
-
     return (
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-        <h2 className="text-2xl font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
-          <ShieldCheck className="text-red-600" />
-          פאנל ניהול
-        </h2>
-        
+        <h2 className="text-2xl font-bold text-slate-800 border-b pb-2 flex items-center gap-2">פאנל ניהול</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-right" dir="rtl">
             <thead>
               <tr className="bg-slate-50 border-b">
-                <th className="p-3 text-sm font-semibold text-slate-600">דירוג</th>
-                <th className="p-3 text-sm font-semibold text-slate-600">שם שחקן</th>
-                <th className="p-3 text-sm font-semibold text-slate-600">פעולות</th>
+                <th className="p-3">דירוג</th>
+                <th className="p-3">שם שחקן</th>
+                <th className="p-3">פעולות</th>
               </tr>
             </thead>
             <tbody>
               {players.map(player => (
-                <tr key={player.id} className="border-b hover:bg-slate-50">
-                  <td className="p-3">
-                    <input 
-                      type="number" 
-                      defaultValue={player.rank}
-                      onBlur={(e) => adminUpdatePlayer(player.id, player.name, e.target.value)}
-                      className="w-16 px-2 py-1 border rounded text-center"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <input 
-                      type="text" 
-                      defaultValue={player.name}
-                      onBlur={(e) => adminUpdatePlayer(player.id, e.target.value, player.rank)}
-                      className="w-full px-2 py-1 border rounded"
-                    />
-                  </td>
-                  <td className="p-3 flex gap-2">
-                    <button 
-                      onClick={() => adminDeletePlayer(player.id)}
-                      className="text-red-500 hover:text-red-700 p-1"
-                      title="מחק שחקן"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
+                <tr key={player.id} className="border-b">
+                  <td className="p-3"><input type="number" defaultValue={player.rank} onBlur={(e) => adminUpdatePlayer(player.id, player.name, e.target.value)} className="w-16 px-2 py-1 border rounded" /></td>
+                  <td className="p-3"><input type="text" defaultValue={player.name} onBlur={(e) => adminUpdatePlayer(player.id, e.target.value, player.rank)} className="w-full px-2 py-1 border rounded" /></td>
+                  <td className="p-3"><button onClick={() => adminDeletePlayer(player.id)} className="text-red-500"><Trash2 size={18} /></button></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-slate-500 mt-4">* שינויים נשמרים אוטומטית ביציאה מהשדה.</p>
       </div>
     );
   };
 
   // --- Main Layout ---
+  if (authError) {
+    const isApiKeyError = authError.includes('api-key-not-valid');
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-center p-6" dir="rtl">
+        <AlertTriangle size={64} className="text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          {isApiKeyError ? 'מפתח ה-API שגוי או חסר' : 'שגיאת אבטחה בחיבור'}
+        </h2>
+        <div className="text-slate-600 mb-6 max-w-md">
+          {isApiKeyError ? (
+            <>
+              <p className="mb-2">נראה שמפתח ה-API שהעתקנו קודם חלקי (חסרות בו אותיות).</p>
+              <p className="font-bold">מה עליך לעשות כדי לתקן?</p>
+              <ol className="list-decimal text-right pr-5 mt-2 space-y-1">
+                <li>היכנס לאתר פיירבייס (Firebase Console).</li>
+                <li>לחץ על סמל גלגל השיניים ⚙️ ובחר ב-<strong>Project settings</strong>.</li>
+                <li>גלול למטה לאזור שנקרא <strong>Your apps</strong>.</li>
+                <li>העתק את הערך המלא והארוך שמופיע ליד המילה <code>apiKey</code>.</li>
+                <li>הדבק אותו בשורה 10 של הקוד כאן.</li>
+              </ol>
+            </>
+          ) : (
+            <p>פיירבייס חוסם את האתר הזה מלהתחבר.</p>
+          )}
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm text-sm text-slate-500 text-left w-full max-w-md" dir="ltr">
+          Error Details: {authError}
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500"><RefreshCw className="animate-spin mr-2" /> טוען נתונים...</div>;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20" dir="rtl">
-      {/* Header */}
       <header className="bg-blue-900 text-white p-4 shadow-md sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -388,7 +382,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="max-w-2xl mx-auto p-4 mt-4">
         {view === 'join' && renderJoin()}
         {view === 'ladder' && renderLadder()}
@@ -396,60 +389,27 @@ export default function App() {
         {view === 'admin' && renderAdmin()}
       </main>
 
-      {/* Match Confirmation Modal */}
       {matchModal.isOpen && matchModal.opponent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <h3 className="text-xl font-bold text-center mb-4">אישור ניצחון</h3>
             <p className="text-center text-slate-600 mb-6">
               האם אתה מאשר שניצחת את <strong>{matchModal.opponent.name}</strong>?
-              <br/><br/>
-              <span className="text-sm text-red-500 block">שים לב: אישור זה יקפיץ אותך למיקום שלו בדירוג.</span>
             </p>
             <div className="flex gap-3">
-              <button 
-                onClick={() => setMatchModal({ isOpen: false, opponent: null })}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
-              >
-                ביטול
-              </button>
-              <button 
-                onClick={() => submitMatchResult(user.uid, matchModal.opponent.id)}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
-              >
-                <Check size={18} />
-                אישור ניצחון
-              </button>
+              <button onClick={() => setMatchModal({ isOpen: false, opponent: null })} className="flex-1 px-4 py-2 border rounded-lg">ביטול</button>
+              <button onClick={() => submitMatchResult(user.uid, matchModal.opponent.id)} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2"><Check size={18} /> אישור ניצחון</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Bottom Navigation */}
       {view !== 'join' && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
           <div className="max-w-2xl mx-auto flex justify-around">
-            <button 
-              onClick={() => setView('ladder')} 
-              className={`flex flex-col items-center py-3 px-6 ${view === 'ladder' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <Trophy size={20} className="mb-1" />
-              <span className="text-xs">סולם</span>
-            </button>
-            <button 
-              onClick={() => setView('rules')} 
-              className={`flex flex-col items-center py-3 px-6 ${view === 'rules' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <BookOpen size={20} className="mb-1" />
-              <span className="text-xs">חוקים</span>
-            </button>
-            <button 
-              onClick={() => setView('admin')} 
-              className={`flex flex-col items-center py-3 px-6 ${view === 'admin' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <ShieldCheck size={20} className="mb-1" />
-              <span className="text-xs">אדמין</span>
-            </button>
+            <button onClick={() => setView('ladder')} className={`flex flex-col items-center py-3 px-6 ${view === 'ladder' ? 'text-blue-600 font-bold' : 'text-slate-500'}`}><Trophy size={20} className="mb-1" /><span className="text-xs">סולם</span></button>
+            <button onClick={() => setView('rules')} className={`flex flex-col items-center py-3 px-6 ${view === 'rules' ? 'text-blue-600 font-bold' : 'text-slate-500'}`}><BookOpen size={20} className="mb-1" /><span className="text-xs">חוקים</span></button>
+            <button onClick={() => setView('admin')} className={`flex flex-col items-center py-3 px-6 ${view === 'admin' ? 'text-blue-600 font-bold' : 'text-slate-500'}`}><ShieldCheck size={20} className="mb-1" /><span className="text-xs">אדמין</span></button>
           </div>
         </nav>
       )}
