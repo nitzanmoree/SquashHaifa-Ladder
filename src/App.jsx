@@ -99,7 +99,7 @@ export default function App() {
         id: doc.id,
         ...doc.data()
       }));
-      matchesData.sort((a, b) => b.timestamp - a.timestamp); // חדש למעלה
+      matchesData.sort((a, b) => b.timestamp - a.timestamp); // מסדר את ההיסטוריה מהחדש לישן
       setMatches(matchesData);
     });
 
@@ -333,4 +333,391 @@ export default function App() {
                   </button>
                 )}
                 
-                {!isMe && myPlayer && (myPlayer.rank - player
+                {!isMe && myPlayer && (myPlayer.rank - player.rank) <= 3 && myPlayer.rank > player.rank && (
+                   <button 
+                   onClick={() => setMatchModal({ isOpen: true, opponent: player })}
+                   className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold transition-all border border-white/20 active:scale-95"
+                 >
+                   עדכן ניצחון
+                 </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {players.length === 0 && (
+          <div className="text-center py-16 text-[#A594BA]">
+            <Trophy size={48} className="mx-auto mb-4 opacity-20" />
+            אין עדיין שחקנים בליגה.<br/>תהיה הראשון להצטרף!
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderJoin = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
+      
+      {/* Hero Header */}
+      <div className="text-center pt-8 pb-2 relative">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#E020A3]/20 rounded-full blur-[60px] z-0"></div>
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#E020A3] mb-6 shadow-[0_0_30px_rgba(224,32,163,0.5)] relative z-10">
+          <Trophy size={40} className="text-white" />
+        </div>
+        <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#A594BA] mb-2 relative z-10 drop-shadow-sm">
+          סקווש חיפה
+        </h1>
+        <p className="text-[#A594BA] relative z-10 font-medium tracking-wide">הצטרפו לסולם הדירוג הרשמי</p>
+      </div>
+
+      {/* Comprehensive Rules / About Section (Pre-login) */}
+      <div className="bg-white/5 backdrop-blur-xl rounded-[32px] p-7 border border-white/10 shadow-xl relative z-10 text-right">
+        <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-4">
+          <div className="bg-[#8A2BE2]/20 p-2 rounded-full text-[#8A2BE2]">
+            <Info size={24} />
+          </div>
+          <h2 className="text-xl font-black text-white">איך הליגה עובדת?</h2>
+        </div>
+        
+        <p className="text-[#A594BA] text-sm mb-4 leading-relaxed">
+          הליגה מבוססת על <strong className="text-white">מודל ההחלפה (Leapfrog)</strong> הדינמי. אין צבירת נקודות - פשוט מנצחים ולוקחים את המקום!
+        </p>
+
+        <ul className="space-y-4 text-sm text-[#A594BA]">
+          <li className="flex items-start gap-3">
+            <span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">1</span>
+            <div><strong className="text-white">נרשמים:</strong> כל שחקן חדש מצטרף אוטומטית לתחתית הרשימה.</div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">2</span>
+            <div><strong className="text-white">מאתגרים:</strong> באפשרותך לאתגר שחקנים שמדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליך (באמצעות כפתור הוואטסאפ). שחקן שאותגר חייב להסכים ולשחק.</div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">3</span>
+            <div><strong className="text-white">מנצחים ועולים:</strong> ניצחת את המשחק? אתה <strong className="text-white">לוקח את המיקום</strong> של המפסיד! הוא וכל מי שמתחתיו יורדים שלב אחד. הפסדת? הדירוג נשאר ללא שינוי.</div>
+          </li>
+        </ul>
+      </div>
+
+      {/* Join Form */}
+      <div className="bg-gradient-to-br from-[#0A0410]/80 to-[#1B0B2E]/80 backdrop-blur-xl p-7 rounded-[32px] shadow-2xl border border-[#E020A3]/30 relative overflow-hidden">
+        <h2 className="text-2xl font-black text-white mb-6">הצטרפות מהירה</h2>
+        
+        <form onSubmit={handleJoin} className="space-y-5 relative z-10">
+          <div>
+            <label className="block text-sm font-bold text-[#A594BA] mb-2">שם מלא</label>
+            <input required type="text" name="name" 
+              className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all placeholder-[#A594BA]/50" 
+              placeholder="שם פרטי ומשפחה" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-[#A594BA] mb-2">מספר וואטסאפ</label>
+            <input required type="tel" name="phone" 
+              className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all placeholder-[#A594BA]/50" 
+              placeholder="050-0000000" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-[#A594BA] mb-2">כתובת מייל</label>
+            <input required type="email" name="email" 
+              className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all placeholder-[#A594BA]/50" 
+              placeholder="email@example.com" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-[#A594BA] mb-2">מספר תעודת זהות</label>
+            <input required type="text" name="idNumber" pattern="\d{8,9}" title="אנא הזן ת.ז תקנית בת 9 ספרות"
+              className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all placeholder-[#A594BA]/50" 
+              placeholder="ת.ז בעלת 9 ספרות" />
+          </div>
+          
+          <div className="pt-2 border-t border-white/10">
+            <div className="flex items-start gap-3 mt-4">
+              <input required type="checkbox" id="health" name="health" className="mt-1 w-4 h-4 accent-[#E020A3]" />
+              <label htmlFor="health" className="text-sm text-[#A594BA] leading-tight cursor-pointer">אני מצהיר/ה בזאת כי מצבי הבריאותי תקין ואני כשיר/ה לפעילות ספורטיבית מאומצת.</label>
+            </div>
+            <div className="flex items-start gap-3 mt-4">
+              <input required type="checkbox" id="rulesCheck" name="rulesCheck" className="mt-1 w-4 h-4 accent-[#E020A3]" />
+              <label htmlFor="rulesCheck" className="text-sm text-[#A594BA] leading-tight cursor-pointer">קראתי והבנתי את תקנון וחוקי הליגה.</label>
+            </div>
+          </div>
+
+          <button type="submit" disabled={isSubmittingJoin} className="w-full bg-gradient-to-r from-[#8A2BE2] to-[#E020A3] text-white font-black text-lg py-4 rounded-full transition-all shadow-[0_8px_25px_rgba(224,32,163,0.4)] hover:shadow-[0_8px_35px_rgba(224,32,163,0.6)] active:scale-95 mt-4 disabled:opacity-50">
+            {isSubmittingJoin ? 'רושם אותך...' : 'הכנס אותי לסולם'}
+          </button>
+        </form>
+      </div>
+
+      {/* Live Ladder Preview */}
+      <div className="pt-4">
+        <h3 className="text-center font-bold text-[#E020A3] mb-4 uppercase tracking-widest text-xs">הצצה לדירוג הנוכחי</h3>
+        {renderLadderPreview()}
+      </div>
+
+    </div>
+  );
+
+  const renderRules = () => (
+    <div className="bg-white/5 backdrop-blur-xl p-7 rounded-[32px] shadow-xl border border-white/10 space-y-6 text-[#A594BA] leading-relaxed" dir="rtl">
+      <div className="flex items-center gap-3 border-b border-white/10 pb-5">
+        <div className="bg-gradient-to-br from-[#8A2BE2]/20 to-[#E020A3]/20 p-3 rounded-full border border-[#E020A3]/30">
+          <BookOpen className="text-[#E020A3]" size={24} />
+        </div>
+        <h2 className="text-2xl font-black text-white">חוקי הליגה</h2>
+      </div>
+      
+      <div className="space-y-5">
+        <div className="bg-[#0A0410]/40 p-5 rounded-[24px] border border-white/5">
+          <h3 className="font-black text-lg text-white mb-3 flex items-center gap-3">
+            <span className="bg-[#E020A3] text-white w-7 h-7 flex items-center justify-center rounded-full text-sm shadow-[0_0_10px_rgba(224,32,163,0.5)]">1</span>
+            אתגר שחקנים
+          </h3>
+          <ul className="list-disc pr-6 space-y-2 text-sm">
+            <li>ניתן לאתגר שחקנים שמדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליך.</li>
+            <li>שחקן שאותגר חייב לקבל את האתגר ולשחק תוך 7 ימים (או לפי מה שסוכם מול המועדון). סירוב לא מוצדק עשוי להוביל להפסד טכני.</li>
+          </ul>
+        </div>
+
+        <div className="bg-[#0A0410]/40 p-5 rounded-[24px] border border-white/5">
+          <h3 className="font-black text-lg text-white mb-3 flex items-center gap-3">
+            <span className="bg-[#8A2BE2] text-white w-7 h-7 flex items-center justify-center rounded-full text-sm shadow-[0_0_10px_rgba(138,43,226,0.5)]">2</span>
+            משחקים ותוצאות
+          </h3>
+          <ul className="list-disc pr-6 space-y-2 text-sm">
+            <li>המשחקים משוחקים בשיטת "הטוב מ-5" מערכות.</li>
+            <li><strong className="text-white">ניצחון של מאתגר:</strong> מבצע "קפיצת צפרדע". המנצח לוקח את המיקום של המפסיד. המפסיד וכל מי שביניהם יורדים שלב אחד למטה.</li>
+            <li><strong className="text-white">ניצחון של מדורג גבוה:</strong> הדירוג נשאר ללא שינוי, השחקן הגן על מיקומו בהצלחה.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAdmin = () => {
+    if (!isAdmin) {
+      return (
+        <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/10 max-w-md mx-auto mt-10 text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-[#FF0055] to-[#E020A3]"></div>
+          <ShieldCheck size={56} className="text-[#FF0055] mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]" />
+          <h2 className="text-2xl font-black text-white mb-2">אזור מנהלים</h2>
+          
+          <p className="text-[#A594BA] text-sm mb-6">
+            נא להזין פרטי גישה<br/>
+            <span className="text-xs opacity-70 block mt-1">(למנהל: שם משתמש admin, סיסמה squash2026)</span>
+          </p>
+          
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <input 
+              type="text" 
+              value={adminUsername}
+              onChange={(e) => setAdminUsername(e.target.value)}
+              placeholder="שם משתמש" 
+              className="w-full px-5 py-4 bg-[#0A0410]/50 border border-white/10 rounded-2xl text-center text-white focus:border-[#FF0055] focus:outline-none transition-colors"
+            />
+            <input 
+              type="password" 
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="סיסמה" 
+              className="w-full px-5 py-4 bg-[#0A0410]/50 border border-white/10 rounded-2xl text-center text-white focus:border-[#FF0055] focus:outline-none tracking-[0.3em] transition-colors"
+            />
+            
+            {adminLoginError && (
+              <div className="text-[#FF0055] text-sm font-bold bg-[#FF0055]/10 p-2 rounded-lg">
+                שם משתמש או סיסמה שגויים
+              </div>
+            )}
+
+            <button type="submit" className="w-full bg-[#FF0055]/10 hover:bg-[#FF0055]/20 text-[#FF0055] border border-[#FF0055]/50 font-black py-4 rounded-full transition-colors active:scale-95 mt-2">
+              היכנס למערכת
+            </button>
+          </form>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-6">
+        {/* טבלת שחקנים ועריכת דירוג */}
+        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10">
+          <h2 className="text-xl font-black text-white border-b border-white/10 pb-4 flex items-center gap-2 mb-4">
+            <ShieldCheck className="text-[#FF0055]" />
+            פאנל ניהול שחקנים
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-right" dir="rtl">
+              <thead>
+                <tr className="text-[#A594BA] text-sm border-b border-white/10">
+                  <th className="p-3 font-medium">דירוג</th>
+                  <th className="p-3 font-medium">שם שחקן</th>
+                  <th className="p-3 font-medium text-center">פעולות</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map(player => (
+                  <tr key={player.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="p-2">
+                      <input type="number" defaultValue={player.rank} onBlur={(e) => adminUpdatePlayer(player.id, player.name, e.target.value)} 
+                      className="w-16 px-2 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-center text-white focus:border-[#E020A3] focus:outline-none" />
+                    </td>
+                    <td className="p-2">
+                      <input type="text" defaultValue={player.name} onBlur={(e) => adminUpdatePlayer(player.id, e.target.value, player.rank)} 
+                      className="w-full px-3 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white focus:border-[#E020A3] focus:outline-none" />
+                    </td>
+                    <td className="p-2 text-center">
+                      <button onClick={() => adminDeletePlayer(player.id)} className="text-[#FF0055] hover:text-white bg-[#FF0055]/10 hover:bg-[#FF0055] p-2 rounded-full transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* טבלת היסטוריית משחקים */}
+        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10">
+          <h2 className="text-xl font-black text-white border-b border-white/10 pb-4 flex items-center gap-2 mb-4">
+            <RefreshCw className="text-[#8A2BE2]" />
+            היסטוריית משחקים האחרונים
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-right" dir="rtl">
+              <thead>
+                <tr className="text-[#A594BA] text-sm border-b border-white/10">
+                  <th className="p-3 font-medium">תאריך</th>
+                  <th className="p-3 font-medium text-[#E020A3]">מנצח</th>
+                  <th className="p-3 font-medium">מפסיד</th>
+                  <th className="p-3 font-medium text-center">מחיקה</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matches.length === 0 ? (
+                  <tr><td colSpan="4" className="p-4 text-center text-slate-500">אין משחקים מתועדים עדיין</td></tr>
+                ) : matches.map(match => (
+                  <tr key={match.id} className="border-b border-white/5 hover:bg-white/5 transition-colors text-sm">
+                    <td className="p-3 text-white/70">{match.dateString}</td>
+                    <td className="p-3 font-bold text-white">{match.winnerName}</td>
+                    <td className="p-3 text-[#A594BA]">{match.loserName}</td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => adminDeleteMatch(match.id)} className="text-slate-400 hover:text-red-400 transition-colors">
+                        <Trash2 size={16} className="mx-auto" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-[#A594BA]/70 mt-4 leading-relaxed">
+            * מחיקת משחק מההיסטוריה **לא** מגלגלת אחורה את מספרי הדירוג של השחקנים (כדי למנוע שרשרת תקלות). אם יש צורך לתקן תוצאה, מחקו את התיעוד מכאן, ושנו את המספרים בטבלה העליונה באופן ידני.
+          </p>
+        </div>
+
+      </div>
+    );
+  };
+
+  // --- Main Layout ---
+  if (authError) {
+    const isApiKeyError = authError.includes('api-key-not-valid');
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#0A0410] to-[#1B0B2E] text-center p-6" dir="rtl">
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap'); * { font-family: 'Heebo', sans-serif; }`}</style>
+        <AlertTriangle size={64} className="text-[#FF0055] mb-4 drop-shadow-[0_0_15px_rgba(255,0,85,0.8)]" />
+        <h2 className="text-2xl font-black text-white mb-2">
+          {isApiKeyError ? 'מפתח ה-API שגוי או חסר' : 'שגיאת אבטחה בחיבור'}
+        </h2>
+        <div className="text-[#A594BA] mb-6 max-w-md bg-white/5 backdrop-blur-md p-6 rounded-[24px] border border-white/10">
+          {isApiKeyError ? (
+            <>
+              <p className="mb-4 text-white">נראה שמפתח ה-API שהעתקנו קודם חלקי (חסרות בו אותיות).</p>
+              <p className="font-bold text-[#E020A3] mb-2">איך לתקן?</p>
+              <ol className="list-decimal text-right pr-5 mt-2 space-y-2 text-sm">
+                <li>היכנס לאתר פיירבייס (Firebase Console).</li>
+                <li>לחץ על גלגל השיניים ⚙️ ובחר <strong>Project settings</strong>.</li>
+                <li>גלול לאזור <strong>Your apps</strong>.</li>
+                <li>העתק את הערך המלא של <code>apiKey</code>.</li>
+                <li>הדבק אותו בשורה 10 של הקוד.</li>
+              </ol>
+            </>
+          ) : (
+            <p>פיירבייס חוסם את האתר הזה מלהתחבר.</p>
+          )}
+        </div>
+        <div className="bg-black/50 p-4 rounded-2xl text-xs text-[#A594BA] font-mono text-left w-full max-w-md border border-[#FF0055]/20" dir="ltr">
+          {authError}
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#0A0410] to-[#1B0B2E]">
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap'); * { font-family: 'Heebo', sans-serif; }`}</style>
+        <RefreshCw className="animate-spin text-[#E020A3] mb-4 drop-shadow-[0_0_10px_rgba(224,32,163,0.5)]" size={40} />
+        <span className="font-bold tracking-widest text-sm text-[#A594BA] uppercase">טוען נתונים...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#0A0410] to-[#1B0B2E] text-white pb-24 relative overflow-hidden" dir="rtl">
+      {/* הזרקת פונט Heebo לכל האפליקציה */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap');
+        * { font-family: 'Heebo', sans-serif; }
+      `}</style>
+
+      {/* אורות ניאון רקע (Ambient Glow) */}
+      <div className="fixed top-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#8A2BE2]/10 blur-[100px] pointer-events-none z-0"></div>
+      <div className="fixed bottom-[10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#E020A3]/10 blur-[100px] pointer-events-none z-0"></div>
+
+      <main className="max-w-xl mx-auto p-5 mt-2 relative z-10">
+        {view === 'join' && renderJoin()}
+        {view === 'ladder' && renderLadder()}
+        {view === 'rules' && renderRules()}
+        {view === 'admin' && renderAdmin()}
+      </main>
+
+      {matchModal.isOpen && matchModal.opponent && (
+        <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-[0_0_40px_rgba(138,43,226,0.3)]">
+            <div className="w-20 h-20 bg-gradient-to-br from-[#8A2BE2] to-[#E020A3] rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_20px_rgba(224,32,163,0.5)]">
+              <Trophy size={40} className="text-white" />
+            </div>
+            <h3 className="text-2xl font-black text-center text-white mb-2">אישור ניצחון</h3>
+            <p className="text-center text-[#A594BA] mb-8">
+              האם אתה מאשר שניצחת את <strong className="text-white">{matchModal.opponent.name}</strong>?
+            </p>
+            <div className="flex gap-4">
+              <button onClick={() => setMatchModal({ isOpen: false, opponent: null })} className="flex-1 px-4 py-4 bg-white/5 border border-white/10 text-white rounded-full font-bold hover:bg-white/10 transition-colors">ביטול</button>
+              <button onClick={() => submitMatchResult(user.uid, matchModal.opponent.id)} className="flex-1 px-4 py-4 bg-gradient-to-r from-[#8A2BE2] to-[#E020A3] text-white rounded-full font-black flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(224,32,163,0.5)] active:scale-95 transition-all">
+                <Check size={20} /> אישור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {view !== 'join' && (
+        <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0410]/80 backdrop-blur-xl border-t border-white/10 z-20 pb-safe">
+          <div className="max-w-xl mx-auto flex justify-around p-3">
+            <button onClick={() => setView('ladder')} className={`flex flex-col items-center p-2 transition-all ${view === 'ladder' ? 'text-[#E020A3] drop-shadow-[0_0_8px_rgba(224,32,163,0.8)]' : 'text-[#A594BA] hover:text-white'}`}>
+              <Trophy size={24} className="mb-1" />
+              <span className="text-[11px] font-bold tracking-wide">סולם</span>
+            </button>
+            <button onClick={() => setView('rules')} className={`flex flex-col items-center p-2 transition-all ${view === 'rules' ? 'text-[#E020A3] drop-shadow-[0_0_8px_rgba(224,32,163,0.8)]' : 'text-[#A594BA] hover:text-white'}`}>
+              <BookOpen size={24} className="mb-1" />
+              <span className="text-[11px] font-bold tracking-wide">חוקים</span>
+            </button>
+            <button onClick={() => setView('admin')} className={`flex flex-col items-center p-2 transition-all ${view === 'admin' ? 'text-[#E020A3] drop-shadow-[0_0_8px_rgba(224,32,163,0.8)]' : 'text-[#A594BA] hover:text-white'}`}>
+              <ShieldCheck size={24} className="mb-1" />
+              <span className="text-[11px] font-bold tracking-wide">אדמין</span>
+            </button>
+          </div>
+        </nav>
+      )}
+    </div>
+  );
+}
