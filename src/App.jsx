@@ -760,18 +760,18 @@ export default function App() {
               }
 
               return (
-                <div key={match.id} className={`backdrop-blur-md p-5 rounded-[20px] border flex justify-between items-center transition-all ${cardStyle}`}>
-                  <div className="flex flex-col items-center flex-1">
-                    <span className="text-[#E020A3] text-xs font-bold uppercase mb-1">מנצח/ת</span>
-                    <span className={`font-black text-lg ${isMyWin ? 'text-emerald-400' : 'text-white'}`}>{match.winnerName} {isMyWin && '(את/ה)'}</span>
+                <div key={match.id} className={`backdrop-blur-md p-4 sm:p-5 rounded-[20px] border flex justify-between items-center transition-all ${cardStyle}`}>
+                  <div className="flex flex-col items-center flex-1 text-center">
+                    <span className="text-[#E020A3] text-[10px] sm:text-xs font-bold uppercase mb-1">מנצח/ת</span>
+                    <span className={`font-black text-base sm:text-lg ${isMyWin ? 'text-emerald-400' : 'text-white'}`}>{match.winnerName} {isMyWin && <span className="text-xs font-normal block sm:inline mt-0.5 sm:mt-0">(את/ה)</span>}</span>
                   </div>
-                  <div className="flex flex-col items-center px-4">
-                    <div className="bg-white/10 px-3 py-1 rounded-full text-[#A594BA] text-[10px] whitespace-nowrap mb-2">{match.dateString}</div>
-                    <Trophy size={16} className="text-yellow-500 opacity-50" />
+                  <div className="flex flex-col items-center px-2 sm:px-4 shrink-0">
+                    <div className="bg-white/10 px-2 sm:px-3 py-1 rounded-full text-[#A594BA] text-[9px] sm:text-[10px] whitespace-nowrap mb-2">{match.dateString}</div>
+                    <Trophy size={14} className="text-yellow-500 opacity-50 sm:w-4 sm:h-4" />
                   </div>
-                  <div className="flex flex-col items-center flex-1">
-                    <span className="text-[#A594BA] text-xs font-bold mb-1">מפסיד/ה</span>
-                    <span className={`font-medium text-lg ${isMyLoss ? 'text-slate-400' : 'text-white/70'}`}>{match.loserName} {isMyLoss && '(את/ה)'}</span>
+                  <div className="flex flex-col items-center flex-1 text-center">
+                    <span className="text-[#A594BA] text-[10px] sm:text-xs font-bold mb-1">מפסיד/ה</span>
+                    <span className={`font-medium text-base sm:text-lg ${isMyLoss ? 'text-slate-400' : 'text-white/70'}`}>{match.loserName} {isMyLoss && <span className="text-xs font-normal block sm:inline mt-0.5 sm:mt-0">(את/ה)</span>}</span>
                   </div>
                 </div>
               );
