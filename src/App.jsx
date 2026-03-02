@@ -627,6 +627,29 @@ export default function App() {
       }
   };
 
+  const handleResetClubPassword = async (clubId, clubName) => {
+      const newPassword = prompt(`הזן סיסמה חדשה עבור מנהל מועדון "${clubName}":`);
+      if (!newPassword) return;
+
+      try {
+          const clubConfigRef = collection(db, 'artifacts', appId, 'public', 'data', `config_${clubId}`);
+          const snapshot = await getDocs(clubConfigRef);
+          
+          if (!snapshot.empty) {
+              const docId = snapshot.docs[0].id;
+              await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', `config_${clubId}`, docId), {
+                  adminPassword: newPassword
+              });
+              alert(`הסיסמה של מועדון ${clubName} אופסה בהצלחה!`);
+          } else {
+              alert("שגיאה: לא נמצאו הגדרות מועדון במסד הנתונים.");
+          }
+      } catch (err) {
+          console.error("Error resetting club password:", err);
+          alert("אירעה שגיאה בעת ניסיון לאפס את הסיסמה.");
+      }
+  };
+
   const switchClubContext = (clubId) => {
       // מעבר לנתיב ה-URL של המועדון החדש תוך השארת פרמטר כדי לדעת שאנחנו באדמין
       window.location.href = `/?club=${clubId}`;
@@ -697,14 +720,23 @@ export default function App() {
               ) : (
                   allClubs.map(club => (
                       <div key={club.clubId} className="bg-white/5 p-5 rounded-[20px] border border-white/10 hover:bg-white/10 transition-colors flex flex-col gap-3">
-                          <div className="flex justify-between items-start">
+                          <div className="flex flex-wrap justify-between items-start gap-2">
                               <h4 className="text-lg font-bold text-white">{club.displayName}</h4>
-                              <button 
-                                  onClick={() => switchClubContext(club.clubId)}
-                                  className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0"
-                              >
-                                  <Settings size={16} /> נהל
-                              </button>
+                              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                  <button 
+                                      onClick={() => handleResetClubPassword(club.clubId, club.displayName)}
+                                      title="איפוס סיסמת הנהלה"
+                                      className="flex-1 sm:flex-none bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1 shrink-0"
+                                  >
+                                      <KeyRound size={16} /> איפוס
+                                  </button>
+                                  <button 
+                                      onClick={() => switchClubContext(club.clubId)}
+                                      className="flex-1 sm:flex-none bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shrink-0"
+                                  >
+                                      <Settings size={16} /> נהל
+                                  </button>
+                              </div>
                           </div>
                           <div className="bg-[#0A0410]/50 p-3 rounded-xl border border-white/5 mt-1">
                               <p className="text-[10px] text-[#A594BA] mb-1 uppercase tracking-wider font-bold">קישור ישיר להעתקה:</p>
@@ -1065,6 +1097,14 @@ export default function App() {
 
             <button type="submit" className="w-full bg-[#FF0055]/10 hover:bg-[#FF0055]/20 text-[#FF0055] border border-[#FF0055]/50 font-black py-4 rounded-full transition-colors active:scale-95 mt-2">
               היכנס למערכת
+            </button>
+            
+            <button 
+                type="button" 
+                onClick={() => alert("מטעמי אבטחה, לא ניתן לשחזר סיסמת הנהלה באופן אוטומטי.\n\nאנא פנה למנהל הרשת (סופר-אדמין) לאיפוס הסיסמה שלך.")} 
+                className="w-full text-[#A594BA] text-sm py-2 hover:text-white transition-colors mt-2"
+            >
+                שכחתי סיסמת הנהלה
             </button>
           </form>
         </div>
