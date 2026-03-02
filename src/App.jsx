@@ -532,6 +532,12 @@ export default function App() {
           </li>
         </ul>
 
+        {/* לחצן גישה קבועה למדריך ולתקנון */}
+        <button onClick={() => setShowRulesModal(true)} className="mt-5 w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
+            <BookOpen size={18} />
+            תקנון הליגה והמדריך המלא
+        </button>
+
         <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center">
             <p className="text-white font-bold mb-1">מנהל הליגה: {leagueConfig.adminName}</p>
             <p className="text-[#A594BA] text-sm">טלפון לבירורים: <a href={`tel:${leagueConfig.adminPhone}`} className="text-[#E020A3] hover:underline" dir="ltr">{leagueConfig.adminPhone}</a></p>
@@ -1000,7 +1006,7 @@ export default function App() {
                   </div>
                   
                   <button onClick={() => setShowRulesModal(false)} className="w-full mt-6 bg-[#E020A3] hover:bg-[#E020A3]/80 text-white font-bold py-3 rounded-full transition-colors">
-                      קראתי, הבנתי ואני מסכים/ה
+                      סגור
                   </button>
               </div>
           </div>
