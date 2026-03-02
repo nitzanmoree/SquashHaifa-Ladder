@@ -197,7 +197,7 @@ export default function App() {
         
         // נוסיף ידנית את חיפה אם היא לא קיימת ברשימה עדיין (לצורך תאימות לאחור)
         if (!clubsData.some(c => c.clubId === 'haifa')) {
-             clubsData.push({ clubId: 'haifa', displayName: 'סקווש חיפה (מקור)' });
+             clubsData.push({ clubId: 'haifa', displayName: 'סקווש חיפה' });
         }
         
         setAllClubs(clubsData);
@@ -987,9 +987,9 @@ export default function App() {
                       <a 
                           key={club.clubId}
                           href={`/?club=${club.clubId}`}
-                          className="text-xs bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex items-center gap-1"
+                          className="text-xs bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors"
                       >
-                          {club.displayName} <ExternalLink size={10} className="opacity-50" />
+                          {club.displayName}
                       </a>
                   ))}
               </div>
