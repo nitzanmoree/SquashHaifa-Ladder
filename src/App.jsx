@@ -700,7 +700,7 @@ export default function App() {
                 </button>
               )}
               
-              {!isMe && myPlayer && (myPlayer.rank - player.rank) <= 3 && myPlayer.rank > player.rank && (
+              {!isMe && myPlayer && Math.abs(myPlayer.rank - player.rank) <= 3 && (
                  <button 
                  onClick={(e) => { e.stopPropagation(); setMatchModal({ isOpen: true, opponent: player }); }}
                  className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold transition-all border border-white/20 active:scale-95"
