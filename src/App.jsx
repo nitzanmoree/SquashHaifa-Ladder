@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, getDocs } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download } from 'lucide-react';
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
@@ -221,6 +221,41 @@ export default function App() {
     const losses = playerMatches.length - wins;
     const winPercent = playerMatches.length > 0 ? Math.round((wins / playerMatches.length) * 100) : 0;
     return { total: playerMatches.length, wins, losses, winPercent };
+  };
+
+  // פונקציית ייצוא שחקנים לאקסל (CSV)
+  const exportPlayersToCSV = () => {
+    // 1. הגדרת כותרות הקובץ
+    const headers = ['דירוג בסולם', 'שם שחקן', 'טלפון', 'אימייל', 'תעודת זהות', 'קוד גישה (PIN)', 'אישור בריאות', 'אישור תקנון', 'תאריך הצטרפות'];
+    
+    // 2. מיפוי הנתונים של השחקנים
+    const rows = players.map(p => [
+        p.rank,
+        p.name,
+        p.phone,
+        p.email || '',
+        p.idNumber || '',
+        p.pin || '',
+        p.healthDeclaration ? 'כן' : 'לא',
+        p.rulesAgreed ? 'כן' : 'לא',
+        p.joinedAt ? new Date(p.joinedAt).toLocaleDateString('he-IL') : ''
+    ]);
+
+    // 3. בניית תוכן ה-CSV (כולל מירכאות סביב שדות כדי למנוע בעיות של פסיקים בטקסט)
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(e => e.map(field => `"${field}"`).join(','))
+    ].join('\n');
+
+    // 4. יצירת קובץ והורדה (BOM \uFEFF חובה כדי שאקסל יקרא עברית תקין)
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `players_export_${currentClubId}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // --- Actions ---
@@ -610,36 +645,47 @@ export default function App() {
               <p className="text-indigo-200 relative z-10">ניהול רשת מועדוני הסקווש</p>
           </div>
 
-          {/* יצירת מועדון חדש */}
+          {/* יצירת מועדון חדש - סודר בגריד קריא ורספונסיבי */}
           <div className="bg-white/5 p-6 rounded-[24px] border border-white/10">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-4">
                   <Plus className="text-emerald-400" /> הקמת מועדון חדש
               </h3>
-              <form onSubmit={handleCreateClub} className="flex flex-col sm:flex-row gap-3">
-                  <input 
-                      type="text" 
-                      placeholder="מזהה באנגלית (למשל: tlv)" 
-                      value={newClubForm.id}
-                      onChange={(e) => setNewClubForm({...newClubForm, id: e.target.value})}
-                      className="flex-1 bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"
-                  />
-                  <input 
-                      type="text" 
-                      placeholder="שם תצוגה (למשל: סקווש תל אביב)" 
-                      value={newClubForm.name}
-                      onChange={(e) => setNewClubForm({...newClubForm, name: e.target.value})}
-                      className="flex-1 bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"
-                  />
-                  <input 
-                      type="text" 
-                      placeholder="סיסמת מנהל ראשונית" 
-                      value={newClubForm.password}
-                      onChange={(e) => setNewClubForm({...newClubForm, password: e.target.value})}
-                      className="flex-1 bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"
-                  />
-                  <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl transition-colors">
-                      צור מועדון
-                  </button>
+              <form onSubmit={handleCreateClub} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div>
+                      <label className="block text-[#A594BA] text-xs mb-1 font-bold">מזהה באנגלית (למשל: tlv)</label>
+                      <input 
+                          type="text" 
+                          placeholder="הזן מזהה לכתובת האתר..." 
+                          value={newClubForm.id}
+                          onChange={(e) => setNewClubForm({...newClubForm, id: e.target.value})}
+                          className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors"
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-[#A594BA] text-xs mb-1 font-bold">שם תצוגה (מופיע בכותרת)</label>
+                      <input 
+                          type="text" 
+                          placeholder="למשל: סקווש כפר סבא" 
+                          value={newClubForm.name}
+                          onChange={(e) => setNewClubForm({...newClubForm, name: e.target.value})}
+                          className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors"
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-[#A594BA] text-xs mb-1 font-bold">סיסמת הנהלה מקומית</label>
+                      <input 
+                          type="text" 
+                          placeholder="בחר סיסמה עבור המנהל..." 
+                          value={newClubForm.password}
+                          onChange={(e) => setNewClubForm({...newClubForm, password: e.target.value})}
+                          className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors"
+                      />
+                  </div>
+                  <div className="flex items-end">
+                      <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg active:scale-95 h-[50px]">
+                          צור מועדון ושמור
+                      </button>
+                  </div>
               </form>
           </div>
 
@@ -662,7 +708,7 @@ export default function App() {
                           </div>
                           <div className="bg-[#0A0410]/50 p-3 rounded-xl border border-white/5 mt-1">
                               <p className="text-[10px] text-[#A594BA] mb-1 uppercase tracking-wider font-bold">קישור ישיר להעתקה:</p>
-                              <p className="text-sm text-emerald-400 font-mono break-all select-all cursor-pointer">
+                              <p className="text-sm text-emerald-400 font-mono break-all select-all cursor-pointer" dir="ltr">
                                   {window.location.origin}/?club={club.clubId}
                               </p>
                           </div>
@@ -1031,18 +1077,26 @@ export default function App() {
       <div className="space-y-6 pb-8 animate-in fade-in duration-300">
         
         <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10 relative">
-          <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+          <div className="flex flex-wrap justify-between items-center mb-6 border-b border-white/10 pb-4 gap-4">
              <h2 className="text-xl font-black text-white flex items-center gap-2">
                <ShieldCheck className="text-[#FF0055]" />
                ניהול שחקנים
              </h2>
-             <button 
-               onClick={saveAdminEdits}
-               disabled={!hasEdits}
-               className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all ${hasEdits ? 'bg-[#FF0055] text-white shadow-[0_0_15px_rgba(255,0,85,0.5)] active:scale-95' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
-             >
-               <Save size={16} /> שמור שינויים
-             </button>
+             <div className="flex gap-3 w-full sm:w-auto">
+                 <button 
+                   onClick={exportPlayersToCSV}
+                   className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white active:scale-95"
+                 >
+                   <Download size={16} /> ייצא לאקסל
+                 </button>
+                 <button 
+                   onClick={saveAdminEdits}
+                   disabled={!hasEdits}
+                   className={`flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all ${hasEdits ? 'bg-[#FF0055] text-white shadow-[0_0_15px_rgba(255,0,85,0.5)] active:scale-95' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
+                 >
+                   <Save size={16} /> שמור שינויים
+                 </button>
+             </div>
           </div>
 
           <div className="overflow-x-auto">
