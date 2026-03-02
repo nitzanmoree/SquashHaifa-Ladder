@@ -674,15 +674,15 @@ export default function App() {
 
         return (
           <div key={player.id} onClick={() => setStatsModalPlayer(player)} className={`flex items-center justify-between p-4 rounded-[24px] border transition-all ${cardStyle}`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 flex items-center justify-center rounded-full font-black text-xl shrink-0 ${rankColor}`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-lg shrink-0 ${rankColor}`}>
                 {player.rank}
               </div>
               <div className="flex flex-col">
-                <h3 className={`font-bold text-lg tracking-wide ${isMe ? 'text-white drop-shadow-md' : 'text-white'}`}>
-                  {player.name} {isMe && <span className="text-[#E020A3] text-sm ml-1">(את/ה)</span>}
+                <h3 className={`font-bold text-base sm:text-lg tracking-wide ${isMe ? 'text-white drop-shadow-md' : 'text-white'}`}>
+                  {player.name} {isMe && <span className="text-[#E020A3] text-xs sm:text-sm ml-1">(את/ה)</span>}
                 </h3>
-                <span className="text-[#A594BA] text-xs flex items-center gap-1 mt-0.5"><BarChart2 size={12}/> לחץ לסטטיסטיקה וראש בראש</span>
+                <span className="text-[#A594BA] text-[11px] sm:text-xs flex items-center gap-1 mt-0.5"><BarChart2 size={12}/> לסטטיסטיקה</span>
               </div>
             </div>
 
