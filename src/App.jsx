@@ -514,6 +514,11 @@ export default function App() {
             <div><strong className="text-white">ניצחון ומיקומים:</strong> ניצחת שחקן מעליך? <strong className="text-white">תפסת לו את המקום</strong>! המפסיד ומי שביניכם יורדים שלב. אם השחקן המדורג גבוה ניצח, המיקומים נשארים ללא שינוי.</div>
           </li>
         </ul>
+
+        <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center">
+            <p className="text-white font-bold mb-1">מנהל הליגה: {leagueConfig.adminName}</p>
+            <p className="text-[#A594BA] text-sm">טלפון לבירורים: <a href={`tel:${leagueConfig.adminPhone}`} className="text-[#E020A3] hover:underline" dir="ltr">{leagueConfig.adminPhone}</a></p>
+        </div>
       </div>
 
       {/* Ladder Preview */}
