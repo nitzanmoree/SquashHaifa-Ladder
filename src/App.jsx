@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle } from 'lucide-react';
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, getDocs } from 'firebase/firestore';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings } from 'lucide-react';
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
@@ -62,6 +62,9 @@ export default function App() {
   const [isSubmittingJoin, setIsSubmittingJoin] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false); // מצב סופר אדמין חדש
+  const [allClubs, setAllClubs] = useState([]); // רשימת כל המועדונים לסופר אדמין
+  const [newClubForm, setNewClubForm] = useState({ id: '', name: '' });
   
   // Modals & States
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -79,7 +82,7 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState(false);
 
-  // הגדרת נתיבי נתונים (תמיכה לאחור ב"חיפה" + נתיבים למועדונים חדשים)
+  // הגדרת נתיבי נתונים דינמיים לפי המועדון הפעיל
   const pPath = currentClubId === 'haifa' ? 'players' : `players_${currentClubId}`;
   const mPath = currentClubId === 'haifa' ? 'matches' : `matches_${currentClubId}`;
   const cPath = currentClubId === 'haifa' ? 'config' : `config_${currentClubId}`;
@@ -115,6 +118,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
+    // האזנה לנתוני המועדון הנוכחי
     const playersRef = collection(db, 'artifacts', appId, 'public', 'data', pPath);
     const matchesRef = collection(db, 'artifacts', appId, 'public', 'data', mPath);
     const configRef = collection(db, 'artifacts', appId, 'public', 'data', cPath);
@@ -163,15 +167,46 @@ export default function App() {
                 themeSecondary: data.themeSecondary || "#E020A3",
                 docId: snapshot.docs[0].id
             });
+        } else {
+             // אם אין קונפיגורציה (מועדון חדש לגמרי), נגדיר ברירת מחדל
+             setLeagueConfig({ 
+                 displayName: `מועדון ${currentClubId}`, 
+                 adminName: "מנהל", 
+                 adminPhone: "", 
+                 whatsappGroupLink: "",
+                 themePrimary: "#8A2BE2",
+                 themeSecondary: "#E020A3",
+                 docId: null
+             });
         }
     });
+
+    // שליפת רשימת כל המועדונים עבור הסופר אדמין (נשמר באוסף 'global_clubs')
+    let unsubscribeGlobalClubs = () => {};
+    if (isSuperAdmin) {
+        const globalClubsRef = collection(db, 'artifacts', appId, 'public', 'data', 'global_clubs');
+        unsubscribeGlobalClubs = onSnapshot(globalClubsRef, (snapshot) => {
+            const clubsData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            // נוסיף ידנית את חיפה אם היא לא קיימת ברשימה עדיין (לצורך תאימות לאחור)
+            if (!clubsData.some(c => c.clubId === 'haifa')) {
+                 clubsData.push({ clubId: 'haifa', displayName: 'סקווש חיפה (מקור)' });
+            }
+            
+            setAllClubs(clubsData);
+        });
+    }
 
     return () => {
       unsubscribePlayers();
       unsubscribeMatches();
       unsubscribeConfig();
+      unsubscribeGlobalClubs();
     };
-  }, [user, localUserId, view, pPath, mPath, cPath]);
+  }, [user, localUserId, view, pPath, mPath, cPath, isSuperAdmin]);
 
   // --- Helpers ---
   const myPlayer = players.find(p => p.id === localUserId);
@@ -342,6 +377,15 @@ export default function App() {
   // --- Admin Actions ---
   const handleAdminLogin = (e) => {
     e.preventDefault();
+    
+    // בדיקת סופר אדמין
+    if (adminUsername === 'superadmin' && adminPassword === 'master2026') {
+        setIsSuperAdmin(true);
+        setAdminLoginError(false);
+        return; // עוצר כאן, לא נכנס למנהל רגיל
+    }
+
+    // בדיקת מנהל מועדון רגיל
     if (adminUsername === 'admin' && adminPassword === 'squash2026') {
       setIsAdmin(true);
       setAdminLoginError(false);
@@ -506,7 +550,112 @@ export default function App() {
     }
   };
 
+  // --- פעולות סופר אדמין ---
+  const handleCreateClub = async (e) => {
+      e.preventDefault();
+      const clubId = newClubForm.id.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      
+      if (!clubId || !newClubForm.name) {
+          alert("יש להזין מזהה ושם מועדון.");
+          return;
+      }
+
+      try {
+          // רישום המועדון ברשימה הגלובלית
+          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'global_clubs'), {
+              clubId: clubId,
+              displayName: newClubForm.name,
+              createdAt: new Date().toISOString()
+          });
+
+          // יצירת קונפיגורציה ראשונית למועדון החדש
+          const newClubConfigPath = `config_${clubId}`;
+          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', newClubConfigPath), {
+              displayName: newClubForm.name,
+              adminName: "מנהל",
+              adminPhone: "",
+              whatsappGroupLink: "",
+              themePrimary: "#8A2BE2",
+              themeSecondary: "#E020A3"
+          });
+
+          alert(`המועדון ${newClubForm.name} הוקם בהצלחה! הלינק שלו: ?club=${clubId}`);
+          setNewClubForm({ id: '', name: '' });
+      } catch (err) {
+          console.error("Error creating club:", err);
+          alert("שגיאה בהקמת המועדון.");
+      }
+  };
+
+  const switchClubContext = (clubId) => {
+      // מעבר לנתיב ה-URL של המועדון החדש תוך השארת פרמטר כדי לדעת שאנחנו באדמין
+      window.location.href = `/?club=${clubId}`;
+  }
+
   // --- Renders ---
+  
+  // תצוגת לוח הבקרה של הסופר-אדמין (Master Dashboard)
+  const renderSuperAdmin = () => (
+      <div className="space-y-6 pb-8 animate-in fade-in duration-500">
+          <div className="bg-gradient-to-r from-indigo-900 to-purple-900 p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-indigo-500/30">
+              <Globe size={48} className="text-white/20 absolute -right-4 -bottom-4 w-32 h-32" />
+              <h2 className="text-3xl font-black text-white relative z-10 flex items-center gap-3 mb-2">
+                  לוח בקרה ארצי
+              </h2>
+              <p className="text-indigo-200 relative z-10">ניהול רשת מועדוני הסקווש</p>
+          </div>
+
+          {/* יצירת מועדון חדש */}
+          <div className="bg-white/5 p-6 rounded-[24px] border border-white/10">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Plus className="text-emerald-400" /> הקמת מועדון חדש
+              </h3>
+              <form onSubmit={handleCreateClub} className="flex flex-col sm:flex-row gap-3">
+                  <input 
+                      type="text" 
+                      placeholder="מזהה באנגלית (למשל: tlv)" 
+                      value={newClubForm.id}
+                      onChange={(e) => setNewClubForm({...newClubForm, id: e.target.value})}
+                      className="flex-1 bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"
+                  />
+                  <input 
+                      type="text" 
+                      placeholder="שם תצוגה (למשל: סקווש תל אביב)" 
+                      value={newClubForm.name}
+                      onChange={(e) => setNewClubForm({...newClubForm, name: e.target.value})}
+                      className="flex-1 bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"
+                  />
+                  <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl transition-colors">
+                      צור מועדון
+                  </button>
+              </form>
+          </div>
+
+          {/* רשימת המועדונים */}
+          <h3 className="text-xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">מועדונים פעילים ברשת</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {allClubs.length === 0 ? (
+                  <div className="text-slate-400">אין מועדונים (מלבד חיפה ברירת המחדל).</div>
+              ) : (
+                  allClubs.map(club => (
+                      <div key={club.clubId} className="bg-white/5 p-5 rounded-[20px] border border-white/10 hover:bg-white/10 transition-colors flex justify-between items-center">
+                          <div>
+                              <h4 className="text-lg font-bold text-white">{club.displayName}</h4>
+                              <p className="text-xs text-[#A594BA] font-mono mt-1">?club={club.clubId}</p>
+                          </div>
+                          <button 
+                              onClick={() => switchClubContext(club.clubId)}
+                              className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                          >
+                              <Settings size={16} /> נהל
+                          </button>
+                      </div>
+                  ))
+              )}
+          </div>
+      </div>
+  );
+
   const renderHome = () => (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       <div className="text-center pt-8 pb-2 relative">
@@ -819,6 +968,10 @@ export default function App() {
   };
 
   const renderAdmin = () => {
+    if (isSuperAdmin) {
+        return renderSuperAdmin();
+    }
+
     if (!isAdmin) {
       return (
         <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/10 max-w-md mx-auto mt-10 text-center relative overflow-hidden animate-in fade-in">
