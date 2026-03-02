@@ -498,6 +498,9 @@ export default function App() {
             <input required type="tel" name="phone" 
               className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all placeholder-[#A594BA]/50" 
               placeholder="050-0000000" />
+            <p className="text-xs text-yellow-400/90 mt-2 font-bold leading-tight">
+              * קריטי: ודאו שהמספר מדויק! דרך מספר זה שחקני הליגה יפנו אליכם בוואטסאפ לתיאום משחקים.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-bold text-[#A594BA] mb-2">כתובת אימייל</label>
