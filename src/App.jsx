@@ -50,6 +50,7 @@ export default function App() {
       displayName: "סקווש חיפה", 
       adminName: "ניצן מורה", 
       adminPhone: "054-4372323", 
+      adminPassword: "squash2026",
       whatsappGroupLink: "",
       themePrimary: "#8A2BE2",
       themeSecondary: "#E020A3",
@@ -64,7 +65,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false); // מצב סופר אדמין חדש
   const [allClubs, setAllClubs] = useState([]); // רשימת כל המועדונים לסופר אדמין
-  const [newClubForm, setNewClubForm] = useState({ id: '', name: '' });
+  const [newClubForm, setNewClubForm] = useState({ id: '', name: '', password: '' });
   
   // Modals & States
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -162,6 +163,7 @@ export default function App() {
                 displayName: data.displayName || "סקווש חיפה",
                 adminName: data.adminName || "ניצן מורה",
                 adminPhone: data.adminPhone || "054-4372323",
+                adminPassword: data.adminPassword || "squash2026",
                 whatsappGroupLink: data.whatsappGroupLink || "",
                 themePrimary: data.themePrimary || "#8A2BE2",
                 themeSecondary: data.themeSecondary || "#E020A3",
@@ -173,6 +175,7 @@ export default function App() {
                  displayName: `מועדון ${currentClubId}`, 
                  adminName: "מנהל", 
                  adminPhone: "", 
+                 adminPassword: "squash2026",
                  whatsappGroupLink: "",
                  themePrimary: "#8A2BE2",
                  themeSecondary: "#E020A3",
@@ -386,7 +389,7 @@ export default function App() {
     }
 
     // בדיקת מנהל מועדון רגיל
-    if (adminUsername === 'admin' && adminPassword === 'squash2026') {
+    if (adminUsername === 'admin' && adminPassword === (leagueConfig.adminPassword || 'squash2026')) {
       setIsAdmin(true);
       setAdminLoginError(false);
       setAdminConfigEdit({ ...leagueConfig });
@@ -516,6 +519,7 @@ export default function App() {
           displayName: adminConfigEdit.displayName,
           adminName: adminConfigEdit.adminName,
           adminPhone: adminConfigEdit.adminPhone,
+          adminPassword: adminConfigEdit.adminPassword || "squash2026",
           whatsappGroupLink: adminConfigEdit.whatsappGroupLink || "",
           themePrimary: adminConfigEdit.themePrimary,
           themeSecondary: adminConfigEdit.themeSecondary
@@ -574,13 +578,14 @@ export default function App() {
               displayName: newClubForm.name,
               adminName: "מנהל",
               adminPhone: "",
+              adminPassword: newClubForm.password || "123456",
               whatsappGroupLink: "",
               themePrimary: "#8A2BE2",
               themeSecondary: "#E020A3"
           });
 
           alert(`המועדון ${newClubForm.name} הוקם בהצלחה! הלינק שלו: ?club=${clubId}`);
-          setNewClubForm({ id: '', name: '' });
+          setNewClubForm({ id: '', name: '', password: '' });
       } catch (err) {
           console.error("Error creating club:", err);
           alert("שגיאה בהקמת המועדון.");
@@ -625,6 +630,13 @@ export default function App() {
                       onChange={(e) => setNewClubForm({...newClubForm, name: e.target.value})}
                       className="flex-1 bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"
                   />
+                  <input 
+                      type="text" 
+                      placeholder="סיסמת מנהל ראשונית" 
+                      value={newClubForm.password}
+                      onChange={(e) => setNewClubForm({...newClubForm, password: e.target.value})}
+                      className="flex-1 bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"
+                  />
                   <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl transition-colors">
                       צור מועדון
                   </button>
@@ -638,17 +650,22 @@ export default function App() {
                   <div className="text-slate-400">אין מועדונים (מלבד חיפה ברירת המחדל).</div>
               ) : (
                   allClubs.map(club => (
-                      <div key={club.clubId} className="bg-white/5 p-5 rounded-[20px] border border-white/10 hover:bg-white/10 transition-colors flex justify-between items-center">
-                          <div>
+                      <div key={club.clubId} className="bg-white/5 p-5 rounded-[20px] border border-white/10 hover:bg-white/10 transition-colors flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
                               <h4 className="text-lg font-bold text-white">{club.displayName}</h4>
-                              <p className="text-xs text-[#A594BA] font-mono mt-1">?club={club.clubId}</p>
+                              <button 
+                                  onClick={() => switchClubContext(club.clubId)}
+                                  className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0"
+                              >
+                                  <Settings size={16} /> נהל
+                              </button>
                           </div>
-                          <button 
-                              onClick={() => switchClubContext(club.clubId)}
-                              className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
-                          >
-                              <Settings size={16} /> נהל
-                          </button>
+                          <div className="bg-[#0A0410]/50 p-3 rounded-xl border border-white/5 mt-1">
+                              <p className="text-[10px] text-[#A594BA] mb-1 uppercase tracking-wider font-bold">קישור ישיר להעתקה:</p>
+                              <p className="text-sm text-emerald-400 font-mono break-all select-all cursor-pointer">
+                                  {window.location.origin}/?club={club.clubId}
+                              </p>
+                          </div>
                       </div>
                   ))
               )}
@@ -978,7 +995,7 @@ export default function App() {
           <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-[#FF0055] to-white"></div>
           <ShieldCheck size={56} className="text-[#FF0055] mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]" />
           <h2 className="text-2xl font-black text-white mb-2">כניסת הנהלה</h2>
-          <p className="text-[#A594BA] text-sm mb-6">אזור מוגן - מועדון: <strong className="text-white uppercase">{currentClubId}</strong></p>
+          <p className="text-[#A594BA] text-sm mb-6">אזור מוגן - <strong className="text-white">{leagueConfig.displayName}</strong></p>
           
           <form onSubmit={handleAdminLogin} className="space-y-4 mt-6">
             <input 
@@ -1141,6 +1158,10 @@ export default function App() {
                <div className="pt-2">
                    <label className="block text-sm text-[#A594BA] mb-1">שם מנהל הליגה</label>
                    <input type="text" value={adminConfigEdit?.adminName || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminName: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white theme-input transition-colors" />
+               </div>
+               <div>
+                   <label className="block text-sm text-[#A594BA] mb-1">סיסמת הנהלה (לכניסה לאזור זה)</label>
+                   <input type="text" value={adminConfigEdit?.adminPassword || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminPassword: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white theme-input transition-colors" />
                </div>
                <div>
                    <label className="block text-sm text-[#A594BA] mb-1">מספר טלפון לפרסום בתקנון</label>
