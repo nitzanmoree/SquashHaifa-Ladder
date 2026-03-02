@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle } from 'lucide-react';
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
@@ -25,7 +25,7 @@ export default function App() {
   const [localUserId, setLocalUserId] = useState(localStorage.getItem('squash_user_id') || null);
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]); 
-  const [leagueConfig, setLeagueConfig] = useState({ adminName: "ניצן מורה", adminPhone: "054-4372323" });
+  const [leagueConfig, setLeagueConfig] = useState({ adminName: "ניצן מורה", adminPhone: "054-4372323", whatsappGroupLink: "" });
   const [view, setView] = useState('home');
   const [loading, setLoading] = useState(true);
   const [isSubmittingJoin, setIsSubmittingJoin] = useState(false);
@@ -123,6 +123,7 @@ export default function App() {
             setLeagueConfig({
                 adminName: data.adminName || "ניצן מורה",
                 adminPhone: data.adminPhone || "054-4372323",
+                whatsappGroupLink: data.whatsappGroupLink || "",
                 docId: snapshot.docs[0].id
             });
         }
@@ -437,13 +438,15 @@ export default function App() {
       if (leagueConfig.docId) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', leagueConfig.docId), {
               adminName: adminConfigEdit.adminName,
-              adminPhone: adminConfigEdit.adminPhone
+              adminPhone: adminConfigEdit.adminPhone,
+              whatsappGroupLink: adminConfigEdit.whatsappGroupLink || ""
           });
       } else {
           // If document doesn't exist yet, create it
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'config'), {
               adminName: adminConfigEdit.adminName,
-              adminPhone: adminConfigEdit.adminPhone
+              adminPhone: adminConfigEdit.adminPhone,
+              whatsappGroupLink: adminConfigEdit.whatsappGroupLink || ""
           });
       }
       alert("פרטי מנהל הליגה נשמרו בהצלחה.");
@@ -540,6 +543,14 @@ export default function App() {
             <p className="text-white font-bold mb-1">מנהל הליגה: {leagueConfig.adminName}</p>
             <p className="text-[#A594BA] text-sm">טלפון לבירורים: <a href={`tel:${leagueConfig.adminPhone}`} className="text-[#E020A3] hover:underline" dir="ltr">{leagueConfig.adminPhone}</a></p>
         </div>
+
+        {/* WhatsApp Group Button */}
+        {leagueConfig.whatsappGroupLink && (
+            <a href={leagueConfig.whatsappGroupLink} target="_blank" rel="noopener noreferrer" className="mt-4 w-full bg-[#25D366] hover:bg-[#20b858] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-[0_4px_15px_rgba(37,211,102,0.3)] active:scale-95">
+                <MessageCircle size={20} />
+                קהילת הליגה בוואטסאפ
+            </a>
+        )}
       </div>
 
       {/* Ladder Preview */}
@@ -891,6 +902,11 @@ export default function App() {
                    <label className="block text-sm text-[#A594BA] mb-1">מספר טלפון לפרסום בתקנון</label>
                    <input type="tel" value={adminConfigEdit?.adminPhone || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminPhone: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E020A3]" />
                </div>
+               <div>
+                   <label className="block text-sm text-[#A594BA] mb-1">קישור לקבוצת וואטסאפ של הליגה</label>
+                   <input type="url" value={adminConfigEdit?.whatsappGroupLink || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, whatsappGroupLink: e.target.value})} placeholder="https://chat.whatsapp.com/..." className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E020A3]" dir="ltr" />
+                   <p className="text-xs text-[#A594BA]/70 mt-1">* השאר ריק אם אינך רוצה להציג כפתור וואטסאפ.</p>
+               </div>
                <button onClick={saveAdminConfig} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">שמור הגדרות ליגה</button>
                
                <div className="pt-6 mt-4 border-t border-white/10">
@@ -939,6 +955,13 @@ export default function App() {
                           <p className="text-white font-bold mb-1">מנהל הליגה: {leagueConfig.adminName}</p>
                           <p>טלפון לבירורים ועזרה: <a href={`tel:${leagueConfig.adminPhone}`} className="text-[#E020A3] hover:underline" dir="ltr">{leagueConfig.adminPhone}</a></p>
                       </div>
+
+                      {leagueConfig.whatsappGroupLink && (
+                          <a href={leagueConfig.whatsappGroupLink} target="_blank" rel="noopener noreferrer" className="mt-4 w-full bg-[#25D366] hover:bg-[#20b858] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-[0_4px_15px_rgba(37,211,102,0.3)] active:scale-95">
+                              <MessageCircle size={20} />
+                              קהילת הליגה בוואטסאפ
+                          </a>
+                      )}
                   </div>
                   
                   <button onClick={() => setShowRulesModal(false)} className="w-full mt-6 bg-[#E020A3] hover:bg-[#E020A3]/80 text-white font-bold py-3 rounded-full transition-colors">
