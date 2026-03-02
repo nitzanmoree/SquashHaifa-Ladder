@@ -41,6 +41,8 @@ export default function App() {
   const [adminEdits, setAdminEdits] = useState({});
   const [adminConfigEdit, setAdminConfigEdit] = useState(null);
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [confirmResetChecked, setConfirmResetChecked] = useState(false);
 
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -448,6 +450,25 @@ export default function App() {
     } catch (err) {
       console.error("Error saving admin config:", err);
       alert("שגיאה בשמירת פרטי המנהל.");
+    }
+  };
+
+  const adminResetLeague = async () => {
+    if (!confirmResetChecked) return;
+    try {
+      // מחיקת כל השחקנים
+      const playerDeletions = players.map(p => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', p.id)));
+      // מחיקת כל היסטוריית המשחקים
+      const matchDeletions = matches.map(m => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', m.id)));
+      
+      await Promise.all([...playerDeletions, ...matchDeletions]);
+      
+      alert("הליגה אופסה בהצלחה. כל השחקנים והמשחקים נמחקו.");
+      setShowResetModal(false);
+      setConfirmResetChecked(false);
+    } catch (err) {
+      console.error("Error resetting league:", err);
+      alert("שגיאה באיפוס הליגה.");
     }
   };
 
@@ -871,6 +892,13 @@ export default function App() {
                    <input type="tel" value={adminConfigEdit?.adminPhone || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminPhone: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E020A3]" />
                </div>
                <button onClick={saveAdminConfig} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">שמור הגדרות ליגה</button>
+               
+               <div className="pt-6 mt-4 border-t border-white/10">
+                 <button onClick={() => {setShowResetModal(true); setConfirmResetChecked(false);}} className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold py-3 px-4 rounded-xl transition-all flex justify-center items-center gap-2">
+                   <AlertTriangle size={18} />
+                   איפוס ליגה (מחיקת כל הנתונים)
+                 </button>
+               </div>
            </div>
         </div>
 
@@ -920,6 +948,50 @@ export default function App() {
           </div>
       )
   }
+
+  const renderResetModal = () => {
+      if (!showResetModal) return null;
+      return (
+          <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[70] animate-in fade-in" onClick={() => setShowResetModal(false)}>
+              <div className="bg-[#1B0B2E] border border-red-500/50 rounded-[32px] p-6 max-w-md w-full shadow-[0_0_40px_rgba(255,0,0,0.2)] relative" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setShowResetModal(false)} className="absolute top-4 left-4 text-[#A594BA] hover:text-white bg-white/5 rounded-full p-1">✕</button>
+                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                      <AlertTriangle size={32} />
+                  </div>
+                  <h3 className="text-2xl font-black text-center text-white mb-2">אזהרה חמורה!</h3>
+                  <p className="text-center text-[#A594BA] mb-6 leading-relaxed">
+                      פעולה זו תמחק לצמיתות את <strong className="text-red-400">כל השחקנים</strong> ואת <strong className="text-red-400">כל היסטוריית המשחקים</strong> מהמערכת. לא ניתן לשחזר את הנתונים לאחר מכן.
+                  </p>
+
+                  <div className="flex items-start gap-3 mb-6 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+                      <input
+                          type="checkbox"
+                          id="confirmReset"
+                          checked={confirmResetChecked}
+                          onChange={(e) => setConfirmResetChecked(e.target.checked)}
+                          className="mt-1 w-5 h-5 accent-red-500 cursor-pointer shrink-0"
+                      />
+                      <label htmlFor="confirmReset" className="text-sm text-white cursor-pointer leading-tight">
+                          אני מבין/ה שפעולה זו היא בלתי הפיכה ומאשר/ת את מחיקת כל נתוני הליגה.
+                      </label>
+                  </div>
+
+                  <div className="flex gap-3">
+                      <button onClick={() => setShowResetModal(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-full transition-colors border border-white/10">
+                          ביטול
+                      </button>
+                      <button
+                          onClick={adminResetLeague}
+                          disabled={!confirmResetChecked}
+                          className={`flex-1 font-bold py-3 rounded-full transition-all flex justify-center items-center gap-2 ${confirmResetChecked ? 'bg-red-500 hover:bg-red-600 text-white shadow-[0_0_15px_rgba(255,0,0,0.5)] active:scale-95' : 'bg-red-500/30 text-white/50 cursor-not-allowed'}`}
+                      >
+                          מחק הכל
+                      </button>
+                  </div>
+              </div>
+          </div>
+      );
+  };
 
   const renderLoginModal = () => {
     if (!loginModalOpen) return null;
@@ -1074,6 +1146,7 @@ export default function App() {
       {renderStatsModal()}
       {renderAdminPlayerModal()}
       {renderRulesModal()}
+      {renderResetModal()}
       
       {matchModal.isOpen && matchModal.opponent && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in">
