@@ -25,6 +25,7 @@ export default function App() {
   const [localUserId, setLocalUserId] = useState(localStorage.getItem('squash_user_id') || null);
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]); 
+  const [leagueConfig, setLeagueConfig] = useState({ adminName: "ניצן מורה", adminPhone: "054-4372323" });
   const [view, setView] = useState('home');
   const [loading, setLoading] = useState(true);
   const [isSubmittingJoin, setIsSubmittingJoin] = useState(false);
@@ -38,6 +39,7 @@ export default function App() {
   const [matchModal, setMatchModal] = useState({ isOpen: false, opponent: null });
   const [adminSelectedPlayer, setAdminSelectedPlayer] = useState(null); 
   const [adminEdits, setAdminEdits] = useState({});
+  const [adminConfigEdit, setAdminConfigEdit] = useState(null);
   const [showRulesModal, setShowRulesModal] = useState(false);
 
   const [adminUsername, setAdminUsername] = useState('');
@@ -77,6 +79,7 @@ export default function App() {
 
     const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
     const matchesRef = collection(db, 'artifacts', appId, 'public', 'data', 'matches');
+    const configRef = collection(db, 'artifacts', appId, 'public', 'data', 'config');
     
     const unsubscribePlayers = onSnapshot(playersRef, (snapshot) => {
       const playersData = snapshot.docs.map(doc => ({
@@ -86,6 +89,17 @@ export default function App() {
       playersData.sort((a, b) => a.rank - b.rank);
       setPlayers(playersData);
       setLoading(false);
+      
+      // ניתוב אוטומטי בהתבסס על החיבור המקומי (טלפון) ולא רק על החיבור האנונימי של פיירבייס
+      const isLocallyRegistered = localUserId && playersData.some(p => p.id === localUserId);
+      const isFirebaseRegistered = playersData.some(p => p.id === user.uid);
+      
+      if (!isLocallyRegistered && !isFirebaseRegistered && view !== 'rules' && view !== 'admin') {
+         // השאר במסך הבית או הרשמה אם אין חיבור תקף
+         if(view !== 'home' && view !== 'join') setView('home');
+      } else if ((isLocallyRegistered || isFirebaseRegistered) && view === 'join') {
+        setView('ladder');
+      }
     }, (error) => {
       console.error("Error fetching players:", error);
       setAuthError(error.message);
@@ -101,11 +115,23 @@ export default function App() {
       setMatches(matchesData);
     });
 
+    const unsubscribeConfig = onSnapshot(configRef, (snapshot) => {
+        if (!snapshot.empty) {
+            const data = snapshot.docs[0].data();
+            setLeagueConfig({
+                adminName: data.adminName || "ניצן מורה",
+                adminPhone: data.adminPhone || "054-4372323",
+                docId: snapshot.docs[0].id
+            });
+        }
+    });
+
     return () => {
       unsubscribePlayers();
       unsubscribeMatches();
+      unsubscribeConfig();
     };
-  }, [user]);
+  }, [user, localUserId, view]);
 
   // --- Helpers ---
   const myPlayer = players.find(p => p.id === localUserId);
@@ -143,7 +169,7 @@ export default function App() {
       const found = players.find(p => cleanPhone(p.phone) === inputPhone);
 
       if (found) {
-          alert(`היי ${found.name}, \nמטעמי אבטחה לא ניתן לשחזר קוד גישה אוטומטית.\nאנא פנה למנהל הליגה בוואטסאפ לצורך איפוס קוד הגישה שלך.`);
+          alert(`היי ${found.name}, \nמטעמי אבטחה לא ניתן לשחזר קוד גישה אוטומטית.\nאנא פנה למנהל הליגה (${leagueConfig.adminName}, ${leagueConfig.adminPhone}) בוואטסאפ לצורך איפוס קוד הגישה שלך.`);
           setForgotPasswordOpen(false);
       } else {
           alert("לא נמצא שחקן רשום עם מספר טלפון זה.");
@@ -160,16 +186,25 @@ export default function App() {
     e.preventDefault();
     if (isSubmittingJoin) return;
     
+    const phone = e.target.phone.value;
+    const cleanedInputPhone = cleanPhone(phone);
     const pin = e.target.pin.value;
+    
     if (pin.length !== 4) {
         alert("קוד הגישה חייב להיות בן 4 ספרות בדיוק.");
+        return;
+    }
+
+    // בדיקת כפילות טלפון
+    const existingPlayer = players.find(p => cleanPhone(p.phone) === cleanedInputPhone);
+    if (existingPlayer) {
+        alert("מספר טלפון זה כבר רשום במערכת. אנא התחבר דרך 'כניסה לרשומים' או השתמש במספר אחר.");
         return;
     }
 
     setIsSubmittingJoin(true);
 
     const name = e.target.name.value;
-    const phone = e.target.phone.value;
     const email = e.target.email.value;
     const idNumber = e.target.idNumber.value;
     const healthDeclaration = e.target.health.checked;
@@ -271,6 +306,9 @@ export default function App() {
     if (adminUsername === 'admin' && adminPassword === 'squash2026') {
       setIsAdmin(true);
       setAdminLoginError(false);
+      
+      // Initialize edit state for config if needed
+      setAdminConfigEdit({ ...leagueConfig });
     } else {
       setAdminLoginError(true);
     }
@@ -355,7 +393,11 @@ export default function App() {
        alert("אין נתוני היסטוריה ישנים למשחק זה ולכן לא ניתן להפוך אותו אוטומטית.");
        return;
     }
-    if (window.confirm("להפוך את התוצאה?\nהמפסיד יוכרז כמנצח, והדירוג יחושב מחדש כאילו הוא ניצח במקור.")) {
+    
+    // אזהרה חמורה למנהל
+    const confirmMsg = "אזהרה!\nהפיכת תוצאה תשחזר את הדירוג של *כל* השחקנים למצב שהיה בדיוק לפני משחק זה, ותחשב את הניצחון ההפוך.\n\nאם שוחקו עוד משחקים מאז, השחזור עלול לדרוס את תוצאותיהם בדירוג ולשבש את הסולם!\n\nהאם אתה בטוח שברצונך להמשיך?";
+    
+    if (window.confirm(confirmMsg)) {
        try {
           const newWinnerId = match.loserId;
           const newLoserId = match.winnerId;
@@ -385,6 +427,27 @@ export default function App() {
        } catch(e) {
           console.error("Reverse error:", e);
        }
+    }
+  };
+
+  const saveAdminConfig = async () => {
+    try {
+      if (leagueConfig.docId) {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', leagueConfig.docId), {
+              adminName: adminConfigEdit.adminName,
+              adminPhone: adminConfigEdit.adminPhone
+          });
+      } else {
+          // If document doesn't exist yet, create it
+          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'config'), {
+              adminName: adminConfigEdit.adminName,
+              adminPhone: adminConfigEdit.adminPhone
+          });
+      }
+      alert("פרטי מנהל הליגה נשמרו בהצלחה.");
+    } catch (err) {
+      console.error("Error saving admin config:", err);
+      alert("שגיאה בשמירת פרטי המנהל.");
     }
   };
 
@@ -787,6 +850,25 @@ export default function App() {
             </table>
           </div>
         </div>
+
+        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10">
+           <h2 className="text-xl font-black text-white border-b border-white/10 pb-4 flex items-center gap-2 mb-4">
+               <Info className="text-[#8A2BE2]" />
+               הגדרות ליגה כלליות
+           </h2>
+           <div className="space-y-4">
+               <div>
+                   <label className="block text-sm text-[#A594BA] mb-1">שם מנהל הליגה (לתצוגה)</label>
+                   <input type="text" value={adminConfigEdit?.adminName || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminName: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E020A3]" />
+               </div>
+               <div>
+                   <label className="block text-sm text-[#A594BA] mb-1">מספר טלפון לפרסום בתקנון</label>
+                   <input type="tel" value={adminConfigEdit?.adminPhone || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminPhone: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E020A3]" />
+               </div>
+               <button onClick={saveAdminConfig} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">שמור הגדרות ליגה</button>
+           </div>
+        </div>
+
       </div>
     );
   };
@@ -808,7 +890,7 @@ export default function App() {
                       
                       <h4 className="text-white font-bold mt-4">2. חוקי הליגה</h4>
                       <ul className="list-disc pr-5 space-y-2">
-                          <li>הליגה פועלת במודל החלפה (Leapfrog).</li>
+                          <li>הליגה פועלת במודל החלפה.</li>
                           <li>שחקן רשאי לאתגר שחקנים המדורגים עד 3 שלבים מעליו.</li>
                           <li>המשחקים משוחקים בשיטת "הטוב מ-5" מערכות (עד 11 נקודות במערכה, הפרש של 2 במידת הצורך).</li>
                           <li>על השחקן המאותגר לקבל את האתגר ולתאם משחק בתוך 7 ימים ממועד הפנייה.</li>
@@ -819,6 +901,11 @@ export default function App() {
 
                       <h4 className="text-white font-bold mt-4">3. הצהרת בריאות</h4>
                       <p>השחקן מצהיר כי הוא בריא וכשיר לפעילות ספורטיבית. הנהלת הליגה אינה אחראית לכל נזק פיזי או רפואי שייגרם במהלך המשחקים.</p>
+                      
+                      <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center">
+                          <p className="text-white font-bold mb-1">מנהל הליגה: {leagueConfig.adminName}</p>
+                          <p>טלפון לבירורים ועזרה: <a href={`tel:${leagueConfig.adminPhone}`} className="text-[#E020A3] hover:underline" dir="ltr">{leagueConfig.adminPhone}</a></p>
+                      </div>
                   </div>
                   
                   <button onClick={() => setShowRulesModal(false)} className="w-full mt-6 bg-[#E020A3] hover:bg-[#E020A3]/80 text-white font-bold py-3 rounded-full transition-colors">
