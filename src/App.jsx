@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, getDocs } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download, PauseCircle, PlayCircle, ExternalLink } from 'lucide-react';
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
@@ -64,7 +64,7 @@ export default function App() {
   const [authError, setAuthError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false); // מצב סופר אדמין חדש
-  const [allClubs, setAllClubs] = useState([]); // רשימת כל המועדונים לסופר אדמין
+  const [allClubs, setAllClubs] = useState([]); // רשימת כל המועדונים
   const [newClubForm, setNewClubForm] = useState({ id: '', name: '', password: '' });
   
   // Modals & States
@@ -127,8 +127,11 @@ export default function App() {
     const unsubscribePlayers = onSnapshot(playersRef, (snapshot) => {
       const playersData = snapshot.docs.map(doc => ({
         id: doc.id,
+        // ברירת מחדל isActive = true אם לא הוגדר אחרת
+        isActive: doc.data().isActive !== false, 
         ...doc.data()
       }));
+      // מיון השחקנים רק אם הם פעילים
       playersData.sort((a, b) => a.rank - b.rank);
       setPlayers(playersData);
       setLoading(false);
@@ -184,24 +187,21 @@ export default function App() {
         }
     });
 
-    // שליפת רשימת כל המועדונים עבור הסופר אדמין (נשמר באוסף 'global_clubs')
-    let unsubscribeGlobalClubs = () => {};
-    if (isSuperAdmin) {
-        const globalClubsRef = collection(db, 'artifacts', appId, 'public', 'data', 'global_clubs');
-        unsubscribeGlobalClubs = onSnapshot(globalClubsRef, (snapshot) => {
-            const clubsData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            
-            // נוסיף ידנית את חיפה אם היא לא קיימת ברשימה עדיין (לצורך תאימות לאחור)
-            if (!clubsData.some(c => c.clubId === 'haifa')) {
-                 clubsData.push({ clubId: 'haifa', displayName: 'סקווש חיפה (מקור)' });
-            }
-            
-            setAllClubs(clubsData);
-        });
-    }
+    // שליפת רשימת כל המועדונים עבור הסופר אדמין ועבור הלינקים בתחתית
+    const globalClubsRef = collection(db, 'artifacts', appId, 'public', 'data', 'global_clubs');
+    const unsubscribeGlobalClubs = onSnapshot(globalClubsRef, (snapshot) => {
+        const clubsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        // נוסיף ידנית את חיפה אם היא לא קיימת ברשימה עדיין (לצורך תאימות לאחור)
+        if (!clubsData.some(c => c.clubId === 'haifa')) {
+             clubsData.push({ clubId: 'haifa', displayName: 'סקווש חיפה (מקור)' });
+        }
+        
+        setAllClubs(clubsData);
+    });
 
     return () => {
       unsubscribePlayers();
@@ -209,10 +209,13 @@ export default function App() {
       unsubscribeConfig();
       unsubscribeGlobalClubs();
     };
-  }, [user, localUserId, view, pPath, mPath, cPath, isSuperAdmin]);
+  }, [user, localUserId, view, pPath, mPath, cPath]);
 
   // --- Helpers ---
   const myPlayer = players.find(p => p.id === localUserId);
+  // שחקנים פעילים בלבד לתצוגה בסולם
+  const activePlayers = players.filter(p => p.isActive !== false);
+
   const cleanPhone = (p) => p.replace(/\D/g, '');
 
   const getPlayerStats = (playerId) => {
@@ -226,16 +229,17 @@ export default function App() {
   // פונקציית ייצוא שחקנים לאקסל (CSV)
   const exportPlayersToCSV = () => {
     // 1. הגדרת כותרות הקובץ
-    const headers = ['דירוג בסולם', 'שם שחקן', 'טלפון', 'אימייל', 'תעודת זהות', 'קוד גישה (PIN)', 'אישור בריאות', 'אישור תקנון', 'תאריך הצטרפות'];
+    const headers = ['דירוג בסולם', 'שם שחקן', 'טלפון', 'אימייל', 'תעודת זהות', 'קוד גישה (PIN)', 'סטטוס', 'אישור בריאות', 'אישור תקנון', 'תאריך הצטרפות'];
     
     // 2. מיפוי הנתונים של השחקנים
     const rows = players.map(p => [
-        p.rank,
+        p.isActive === false ? 'מוקפא' : p.rank,
         p.name,
         p.phone,
         p.email || '',
         p.idNumber || '',
         p.pin || '',
+        p.isActive === false ? 'מוקפא' : 'פעיל',
         p.healthDeclaration ? 'כן' : 'לא',
         p.rulesAgreed ? 'כן' : 'לא',
         p.joinedAt ? new Date(p.joinedAt).toLocaleDateString('he-IL') : ''
@@ -322,7 +326,7 @@ export default function App() {
     const healthDeclaration = e.target.health.checked;
     const rulesAgreed = e.target.rulesCheck.checked;
     
-    const newRank = players.length > 0 ? players.length + 1 : 1;
+    const newRank = activePlayers.length > 0 ? activePlayers.length + 1 : 1;
     
     try {
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, user.uid), {
@@ -334,6 +338,7 @@ export default function App() {
         healthDeclaration,
         rulesAgreed,
         rank: newRank,
+        isActive: true,
         joinedAt: new Date().toISOString(),
         lastActive: new Date().toISOString()
       });
@@ -349,8 +354,58 @@ export default function App() {
     }
   };
 
+  // פעולת הקפאה/הפעלה של שחקן
+  const togglePlayerStatus = async () => {
+      if (!myPlayer) return;
+      
+      const newStatus = myPlayer.isActive === false; // הפוך את הסטטוס הנוכחי
+      let newRank = myPlayer.rank;
+
+      if (newStatus === false) {
+           if (!window.confirm("האם אתה בטוח שברצונך לצאת מהליגה? \n\nפעולה זו תסיר אותך מהסולם הפעיל, אך תשמור את היסטוריית המשחקים שלך. תוכל לחזור בכל שלב (ותתחיל מתחתית הסולם).")) {
+               return;
+           }
+           // אם מקפיא את עצמו, צריך לקדם את כל מי שמתחתיו
+           const sortedActive = [...activePlayers].sort((a,b) => a.rank - b.rank);
+           const updates = [];
+           sortedActive.forEach(p => {
+               if (p.rank > myPlayer.rank) {
+                   updates.push(updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, p.id), {
+                       rank: p.rank - 1
+                   }));
+               }
+           });
+           updates.push(updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, myPlayer.id), {
+               isActive: false,
+               rank: 9999 // למקם למטה כדי שלא יפריע
+           }));
+           
+           try {
+               await Promise.all(updates);
+               alert("הוקפאת בהצלחה. להתראות בינתיים!");
+           } catch(e) {
+               console.error(e);
+               alert("שגיאה בהקפאת שחקן.");
+           }
+      } else {
+           // אם חוזר להיות פעיל, מקבל את המקום האחרון
+           newRank = activePlayers.length > 0 ? activePlayers.length + 1 : 1;
+           try {
+               await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, myPlayer.id), {
+                   isActive: true,
+                   rank: newRank,
+                   lastActive: new Date().toISOString()
+               });
+               alert("ברוך שובך לסולם!");
+           } catch(e) {
+               console.error(e);
+               alert("שגיאה בחזרה לליגה.");
+           }
+      }
+  }
+
   const submitMatchResult = async (winnerId, loserId) => {
-    const sortedPlayers = [...players].sort((a, b) => a.rank - b.rank);
+    const sortedPlayers = [...activePlayers].sort((a, b) => a.rank - b.rank);
     const winnerIdx = sortedPlayers.findIndex(p => p.id === winnerId);
     const loserIdx = sortedPlayers.findIndex(p => p.id === loserId);
 
@@ -383,8 +438,8 @@ export default function App() {
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', mPath), {
         winnerId,
         loserId,
-        winnerName: players.find(p => p.id === winnerId)?.name || 'לא ידוע',
-        loserName: players.find(p => p.id === loserId)?.name || 'לא ידוע',
+        winnerName: activePlayers.find(p => p.id === winnerId)?.name || 'לא ידוע',
+        loserName: activePlayers.find(p => p.id === loserId)?.name || 'לא ידוע',
         playersSnapshot, 
         timestamp: Date.now(),
         dateString: new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })
@@ -450,7 +505,8 @@ export default function App() {
         const data = adminEdits[id];
         return updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, id), {
           name: data.name,
-          rank: parseInt(data.rank, 10)
+          rank: parseInt(data.rank, 10),
+          isActive: data.isActive !== false
         });
       });
       await Promise.all(updates);
@@ -818,9 +874,21 @@ export default function App() {
         {myPlayer ? (
           <div className="bg-white/10 backdrop-blur-xl p-5 rounded-[24px] border theme-border-primary-30 text-center theme-glow-primary-20">
             <p className="text-[#A594BA] mb-2">שלום, <strong className="text-white">{myPlayer.name}</strong></p>
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setView('ladder')} className="flex-1 theme-gradient-r text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">
-                לסולם הדירוג
+            {myPlayer.isActive === false && (
+                <div className="bg-amber-500/10 text-amber-400 text-sm font-bold p-2 rounded-lg mt-2 mb-2 border border-amber-500/20">
+                    חשבונך מוקפא. אינך מופיע בסולם הדירוג.
+                </div>
+            )}
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setView('ladder')} className="flex-1 theme-gradient-r text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform text-sm">
+                {myPlayer.isActive === false ? 'צפה בסולם' : 'לסולם הדירוג'}
+              </button>
+              <button 
+                onClick={togglePlayerStatus} 
+                title={myPlayer.isActive === false ? 'חזור לפעילות בסולם' : 'הקפא חשבון וצא מהסולם'}
+                className={`px-4 font-bold py-3 rounded-xl transition-colors flex items-center justify-center text-sm ${myPlayer.isActive === false ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30' : 'bg-white/5 border border-white/10 text-[#A594BA] hover:text-white'}`}
+              >
+                {myPlayer.isActive === false ? <PlayCircle size={20} /> : <PauseCircle size={20} />}
               </button>
               <button onClick={handleLogout} className="px-4 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center">
                 <LogOut size={20} />
@@ -883,13 +951,13 @@ export default function App() {
         )}
       </div>
 
-      <div className="pt-4 pb-8">
+      <div className="pt-4 pb-4">
         <h3 className="text-center font-bold theme-text-secondary mb-4 uppercase tracking-widest text-xs">הצצה לדירוג הנוכחי</h3>
         <div className="space-y-3">
-          {players.length === 0 ? (
-            <div className="text-center py-6 text-[#A594BA] bg-white/5 rounded-2xl border border-white/10">אין עדיין שחקנים.</div>
+          {activePlayers.length === 0 ? (
+            <div className="text-center py-6 text-[#A594BA] bg-white/5 rounded-2xl border border-white/10">אין עדיין שחקנים פעילים.</div>
           ) : (
-            players.slice(0, 5).map(player => (
+            activePlayers.slice(0, 5).map(player => (
               <div key={player.id} className="flex items-center justify-between p-4 rounded-[20px] bg-white/5 backdrop-blur-md border border-white/10">
                 <div className="flex items-center gap-4">
                   <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm ${player.rank <= 3 ? 'theme-gradient-br text-white' : 'bg-white/10 text-white'}`}>
@@ -901,12 +969,33 @@ export default function App() {
             ))
           )}
         </div>
-        {players.length > 5 && (
+        {activePlayers.length > 5 && (
           <button onClick={() => setView('ladder')} className="w-full mt-4 text-[#A594BA] text-sm hover:text-white transition-colors">
-            הצג את כל הדירוג ({players.length} שחקנים)
+            הצג את כל הדירוג ({activePlayers.length} שחקנים)
           </button>
         )}
       </div>
+      
+      {/* תצוגת רשת המועדונים הארצית בתחתית עמוד הבית */}
+      {allClubs.length > 1 && (
+          <div className="mt-6 mb-8 pt-6 border-t border-white/10 text-center">
+              <p className="text-[#A594BA] text-xs uppercase tracking-widest font-bold mb-3 flex items-center justify-center gap-1">
+                  <Globe size={12} /> רשת הליגות הארצית
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                  {allClubs.filter(c => c.clubId !== currentClubId).map(club => (
+                      <a 
+                          key={club.clubId}
+                          href={`/?club=${club.clubId}`}
+                          className="text-xs bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex items-center gap-1"
+                      >
+                          {club.displayName} <ExternalLink size={10} className="opacity-50" />
+                      </a>
+                  ))}
+              </div>
+          </div>
+      )}
+
     </div>
   );
 
@@ -983,14 +1072,17 @@ export default function App() {
          <h2 className="text-3xl font-black text-white relative z-10 drop-shadow-lg flex justify-center items-center gap-3">
             <List className="theme-text-secondary" size={32} /> סולם הדירוג
          </h2>
-         {!myPlayer && (
+         {!myPlayer ? (
            <p className="theme-text-secondary mt-2 text-sm relative z-10">* התחבר בחשבון כדי לעשות צ׳אלנג׳ ולהזין תוצאות</p>
-         )}
+         ) : myPlayer.isActive === false ? (
+           <p className="text-amber-400 mt-2 text-sm relative z-10">* חשבונך מוקפא ולכן אינך מופיע בסולם.</p>
+         ) : null}
       </div>
 
-      {players.map((player) => {
+      {activePlayers.map((player) => {
         const isMe = myPlayer && myPlayer.id === player.id;
-        const isChallengeable = myPlayer && !isMe && player.rank < myPlayer.rank && (myPlayer.rank - player.rank) <= 3;
+        // שחקן מוקפא לא יכול לאתגר
+        const isChallengeable = myPlayer && myPlayer.isActive !== false && !isMe && player.rank < myPlayer.rank && (myPlayer.rank - player.rank) <= 3;
         
         let rankColor = "bg-white/10 text-[#A594BA]";
         let cardStyle = "bg-white/5 border-white/10 backdrop-blur-md cursor-pointer hover:bg-white/10";
@@ -1029,7 +1121,8 @@ export default function App() {
                 </button>
               )}
               
-              {!isMe && myPlayer && Math.abs(myPlayer.rank - player.rank) <= 3 && (
+              {/* כפתור הניצחון יופיע רק אם המשתמש מחובר ופעיל */}
+              {!isMe && myPlayer && myPlayer.isActive !== false && Math.abs(myPlayer.rank - player.rank) <= 3 && (
                  <button 
                  onClick={(e) => { e.stopPropagation(); setMatchModal({ isOpen: true, opponent: player }); }}
                  className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold transition-all border border-white/20 active:scale-95"
@@ -1194,7 +1287,7 @@ export default function App() {
               <thead>
                 <tr className="text-[#A594BA] text-sm border-b border-white/10">
                   <th className="p-3 font-medium text-center">מידע</th>
-                  <th className="p-3 font-medium">דירוג</th>
+                  <th className="p-3 font-medium">דירוג/סטטוס</th>
                   <th className="p-3 font-medium">שם שחקן</th>
                   <th className="p-3 font-medium text-center">קוד/מחק</th>
                 </tr>
@@ -1205,27 +1298,39 @@ export default function App() {
                   const isEdited = !!adminEdits[player.id];
 
                   return (
-                    <tr key={player.id} className={`border-b border-white/5 transition-colors ${isEdited ? 'bg-[#FF0055]/10' : 'hover:bg-white/5'}`}>
+                    <tr key={player.id} className={`border-b border-white/5 transition-colors ${isEdited ? 'bg-[#FF0055]/10' : 'hover:bg-white/5'} ${player.isActive === false ? 'opacity-50' : ''}`}>
                       <td className="p-2 text-center">
                         <button onClick={() => setAdminSelectedPlayer(player)} className="text-[#A594BA] hover:text-white p-2 transition-colors">
                           <Eye size={18} className="mx-auto" />
                         </button>
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 flex flex-col gap-1 items-start">
                         <input type="number" value={currentData.rank} onChange={(e) => handleAdminEditChange(player.id, 'rank', e.target.value)} 
-                        className={`w-16 px-2 py-2 bg-[#0A0410]/50 border ${isEdited ? 'border-[#FF0055]' : 'border-white/10'} rounded-xl text-center text-white focus:outline-none`} />
+                        className={`w-16 px-2 py-1 bg-[#0A0410]/50 border ${isEdited ? 'border-[#FF0055]' : 'border-white/10'} rounded-lg text-center text-white focus:outline-none text-sm`} />
+                        
+                        <label className="flex items-center gap-1 text-[10px] text-[#A594BA] cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={currentData.isActive !== false}
+                                onChange={(e) => handleAdminEditChange(player.id, 'isActive', e.target.checked)}
+                                className="accent-emerald-500 w-3 h-3"
+                            />
+                            פעיל בסולם
+                        </label>
                       </td>
                       <td className="p-2">
                         <input type="text" value={currentData.name} onChange={(e) => handleAdminEditChange(player.id, 'name', e.target.value)} 
-                        className={`w-full px-3 py-2 bg-[#0A0410]/50 border ${isEdited ? 'border-[#FF0055]' : 'border-white/10'} rounded-xl text-white focus:outline-none`} />
+                        className={`w-full px-3 py-2 bg-[#0A0410]/50 border ${isEdited ? 'border-[#FF0055]' : 'border-white/10'} rounded-xl text-white focus:outline-none ${player.isActive === false ? 'line-through text-[#A594BA]' : ''}`} />
                       </td>
-                      <td className="p-2 text-center flex justify-center gap-2">
-                        <button onClick={() => adminResetPin(player.id)} title="אפס קוד גישה" className="text-yellow-500 hover:text-white bg-yellow-500/10 p-2 rounded-full transition-colors">
-                          <KeyRound size={16} />
-                        </button>
-                        <button onClick={() => adminDeletePlayer(player.id)} title="מחק שחקן" className="text-[#FF0055] hover:text-white bg-[#FF0055]/10 hover:bg-[#FF0055] p-2 rounded-full transition-colors">
-                          <Trash2 size={16} className="mx-auto" />
-                        </button>
+                      <td className="p-2 text-center">
+                        <div className="flex justify-center gap-2">
+                            <button onClick={() => adminResetPin(player.id)} title="אפס קוד גישה" className="text-yellow-500 hover:text-white bg-yellow-500/10 p-2 rounded-full transition-colors">
+                              <KeyRound size={16} />
+                            </button>
+                            <button onClick={() => adminDeletePlayer(player.id)} title="מחק שחקן" className="text-[#FF0055] hover:text-white bg-[#FF0055]/10 hover:bg-[#FF0055] p-2 rounded-full transition-colors">
+                              <Trash2 size={16} className="mx-auto" />
+                            </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -1494,11 +1599,13 @@ export default function App() {
           <button onClick={() => setStatsModalPlayer(null)} className="absolute top-5 left-5 text-[#A594BA] hover:text-white text-xl">✕</button>
           
           <div className="w-24 h-24 mx-auto theme-gradient-br rounded-full flex items-center justify-center text-4xl font-black text-white theme-glow-secondary-50 mb-4 border-4 border-[#0A0410]">
-            {statsModalPlayer.rank}
+            {statsModalPlayer.isActive === false ? '-' : statsModalPlayer.rank}
           </div>
           
           <h3 className="text-2xl font-black text-white mb-1">{statsModalPlayer.name}</h3>
-          <p className="text-[#A594BA] text-sm mb-6 flex items-center justify-center gap-1"><Trophy size={14}/> מקום בסולם</p>
+          <p className="text-[#A594BA] text-sm mb-6 flex items-center justify-center gap-1">
+             {statsModalPlayer.isActive === false ? 'שחקן לא פעיל (מוקפא)' : <><Trophy size={14}/> מקום בסולם</>}
+          </p>
 
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
@@ -1548,7 +1655,10 @@ export default function App() {
         <div className="bg-[#1B0B2E] border border-[#FF0055]/30 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative text-right" onClick={e => e.stopPropagation()}>
           <button onClick={() => setAdminSelectedPlayer(null)} className="absolute top-5 left-5 text-[#A594BA] hover:text-white text-xl">✕</button>
           
-          <h3 className="text-2xl font-black text-white mb-6 border-b border-white/10 pb-4">פרטי שחקן</h3>
+          <h3 className="text-2xl font-black text-white mb-6 border-b border-white/10 pb-4 flex items-center gap-2">
+              פרטי שחקן
+              {adminSelectedPlayer.isActive === false && <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-md">מוקפא</span>}
+          </h3>
           
           <div className="space-y-4 text-sm">
             <div>
