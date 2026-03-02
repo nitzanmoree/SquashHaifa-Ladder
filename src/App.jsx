@@ -650,6 +650,47 @@ export default function App() {
       }
   };
 
+  const handleDeleteClub = async (clubId, clubName) => {
+      if (clubId === 'haifa') {
+          alert("לא ניתן למחוק את המועדון המקורי (haifa).");
+          return;
+      }
+
+      if (window.confirm(`אזהרה חמורה!\nהאם אתה בטוח שברצונך למחוק לחלוטין את מועדון "${clubName}"?\n\nפעולה זו תמחק את המועדון, ההגדרות, כל השחקנים וכל המשחקים שלו. פעולה זו היא בלתי הפיכה!`)) {
+          try {
+              // 1. למצוא ולמחוק את המועדון מרשימת המועדונים הגלובלית
+              const globalClubsRef = collection(db, 'artifacts', appId, 'public', 'data', 'global_clubs');
+              const globalClubsSnapshot = await getDocs(globalClubsRef);
+              const clubDocToDelete = globalClubsSnapshot.docs.find(doc => doc.data().clubId === clubId);
+              if (clubDocToDelete) {
+                  await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'global_clubs', clubDocToDelete.id));
+              }
+
+              // 2. למחוק את קונפיגורציית המועדון
+              const configRef = collection(db, 'artifacts', appId, 'public', 'data', `config_${clubId}`);
+              const configSnapshot = await getDocs(configRef);
+              const configDeletions = configSnapshot.docs.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `config_${clubId}`, d.id)));
+              
+              // 3. למחוק שחקנים
+              const playersRef = collection(db, 'artifacts', appId, 'public', 'data', `players_${clubId}`);
+              const playersSnapshot = await getDocs(playersRef);
+              const playerDeletions = playersSnapshot.docs.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `players_${clubId}`, d.id)));
+
+              // 4. למחוק משחקים
+              const matchesRef = collection(db, 'artifacts', appId, 'public', 'data', `matches_${clubId}`);
+              const matchesSnapshot = await getDocs(matchesRef);
+              const matchDeletions = matchesSnapshot.docs.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `matches_${clubId}`, d.id)));
+
+              await Promise.all([...configDeletions, ...playerDeletions, ...matchDeletions]);
+              
+              alert(`המועדון "${clubName}" וכל נתוניו נמחקו בהצלחה.`);
+          } catch (err) {
+              console.error("Error deleting club:", err);
+              alert("שגיאה במחיקת המועדון.");
+          }
+      }
+  };
+
   const switchClubContext = (clubId) => {
       // מעבר לנתיב ה-URL של המועדון החדש תוך השארת פרמטר כדי לדעת שאנחנו באדמין
       window.location.href = `/?club=${clubId}`;
@@ -723,6 +764,15 @@ export default function App() {
                           <div className="flex flex-wrap justify-between items-start gap-2">
                               <h4 className="text-lg font-bold text-white">{club.displayName}</h4>
                               <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                  {club.clubId !== 'haifa' && (
+                                      <button 
+                                          onClick={() => handleDeleteClub(club.clubId, club.displayName)}
+                                          title="מחק מועדון"
+                                          className="flex-1 sm:flex-none bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-xl transition-all flex items-center justify-center shrink-0"
+                                      >
+                                          <Trash2 size={16} />
+                                      </button>
+                                  )}
                                   <button 
                                       onClick={() => handleResetClubPassword(club.clubId, club.displayName)}
                                       title="איפוס סיסמת הנהלה"
