@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound } from 'lucide-react';
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
@@ -33,10 +33,12 @@ export default function App() {
   
   // Modals & States
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [statsModalPlayer, setStatsModalPlayer] = useState(null);
   const [matchModal, setMatchModal] = useState({ isOpen: false, opponent: null });
-  const [adminSelectedPlayer, setAdminSelectedPlayer] = useState(null); // פרטי שחקן לאדמין
+  const [adminSelectedPlayer, setAdminSelectedPlayer] = useState(null); 
   const [adminEdits, setAdminEdits] = useState({});
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -121,7 +123,9 @@ export default function App() {
   const handleLogin = (e) => {
     e.preventDefault();
     const inputPhone = cleanPhone(e.target.phone.value);
-    const found = players.find(p => cleanPhone(p.phone) === inputPhone);
+    const inputPin = e.target.pin.value;
+    
+    const found = players.find(p => cleanPhone(p.phone) === inputPhone && p.pin === inputPin);
     
     if (found) {
       localStorage.setItem('squash_user_id', found.id);
@@ -129,9 +133,22 @@ export default function App() {
       setLoginModalOpen(false);
       setView('ladder');
     } else {
-      alert("לא נמצא שחקן רשום עם מספר הטלפון הזה.");
+      alert("מספר הטלפון או קוד הגישה שגויים.");
     }
   };
+
+  const handleForgotPassword = (e) => {
+      e.preventDefault();
+      const inputPhone = cleanPhone(e.target.phone.value);
+      const found = players.find(p => cleanPhone(p.phone) === inputPhone);
+
+      if (found) {
+          alert(`היי ${found.name}, \nמטעמי אבטחה לא ניתן לשחזר קוד גישה אוטומטית.\nאנא פנה למנהל הליגה בוואטסאפ לצורך איפוס קוד הגישה שלך.`);
+          setForgotPasswordOpen(false);
+      } else {
+          alert("לא נמצא שחקן רשום עם מספר טלפון זה.");
+      }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('squash_user_id');
@@ -142,6 +159,13 @@ export default function App() {
   const handleJoin = async (e) => {
     e.preventDefault();
     if (isSubmittingJoin) return;
+    
+    const pin = e.target.pin.value;
+    if (pin.length !== 4) {
+        alert("קוד הגישה חייב להיות בן 4 ספרות בדיוק.");
+        return;
+    }
+
     setIsSubmittingJoin(true);
 
     const name = e.target.name.value;
@@ -159,6 +183,7 @@ export default function App() {
         phone,
         email,
         idNumber,
+        pin,
         healthDeclaration,
         rulesAgreed,
         rank: newRank,
@@ -184,7 +209,6 @@ export default function App() {
 
     if (winnerIdx === -1 || loserIdx === -1) return;
 
-    // צילום מצב הדירוג הנוכחי כדי לאפשר שחזור עתידי ע"י המנהל
     const playersSnapshot = sortedPlayers.map(p => ({ id: p.id, rank: p.rank }));
 
     try {
@@ -214,7 +238,7 @@ export default function App() {
         loserId,
         winnerName: players.find(p => p.id === winnerId)?.name || 'לא ידוע',
         loserName: players.find(p => p.id === loserId)?.name || 'לא ידוע',
-        playersSnapshot, // שמירת היסטוריית מיקומים לביטול
+        playersSnapshot, 
         timestamp: Date.now(),
         dateString: new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })
       });
@@ -232,7 +256,6 @@ export default function App() {
     const text = encodeURIComponent(`היי! מדבר ${myName} מליגת הסקווש. אני רוצה לעשות לך צ׳אלנג׳ למשחק במסגרת הסולם! מתי נוח לך? 🎾`);
     const url = `https://wa.me/${finalPhone}?text=${text}`;
     
-    // פתיחה בטאב חדש בצורה שעובדת נהדר באייפון בלי להרוס את האפליקציה
     const link = document.createElement('a');
     link.href = url;
     link.target = '_blank';
@@ -293,6 +316,23 @@ export default function App() {
     }
   };
 
+  const adminResetPin = async (playerId) => {
+      const newPin = prompt("הזן קוד PIN חדש בן 4 ספרות עבור השחקן:");
+      if (newPin && newPin.length === 4 && /^\d+$/.test(newPin)) {
+          try {
+              await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', playerId), {
+                  pin: newPin
+              });
+              alert("הקוד אופס בהצלחה.");
+          } catch (err) {
+              console.error("Admin reset PIN error:", err);
+              alert("שגיאה באיפוס הקוד.");
+          }
+      } else if (newPin !== null) {
+          alert("קוד לא תקין. יש להזין 4 ספרות בדיוק.");
+      }
+  }
+
   const adminDeleteMatch = async (match) => {
     if (window.confirm("למחוק משחק זה?\nאם יש תיעוד, הדירוג יחזור למצב שהיה לפני המשחק.")) {
       try {
@@ -320,12 +360,10 @@ export default function App() {
           const newWinnerId = match.loserId;
           const newLoserId = match.winnerId;
 
-          // לוקחים את הדירוג שהיה לפני המשחק
           let currentPlayersState = [...match.playersSnapshot].sort((a,b) => a.rank - b.rank);
           const winnerIdx = currentPlayersState.findIndex(p => p.id === newWinnerId);
           const loserIdx = currentPlayersState.findIndex(p => p.id === newLoserId);
 
-          // מדמים מחדש את ההחלפה (הקפיצה)
           if (winnerIdx !== -1 && loserIdx !== -1) {
               if (currentPlayersState[winnerIdx].rank > currentPlayersState[loserIdx].rank) {
                   const winnerObj = currentPlayersState.splice(winnerIdx, 1)[0];
@@ -336,7 +374,6 @@ export default function App() {
               await Promise.all(updates);
           }
 
-          // מעדכנים את המסמך של המשחק עצמו שהתהפך
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', match.id), {
               winnerId: newWinnerId,
               loserId: newLoserId,
@@ -394,21 +431,24 @@ export default function App() {
 
       {/* Rules Section */}
       <div className="bg-white/5 backdrop-blur-xl rounded-[32px] p-7 border border-white/10 shadow-xl relative z-10 text-right mt-6">
-        <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-4">
-          <div className="bg-[#8A2BE2]/20 p-2 rounded-full text-[#8A2BE2]">
-            <Info size={24} />
+        <div className="flex flex-col gap-2 mb-4 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+              <div className="bg-[#8A2BE2]/20 p-2 rounded-full text-[#8A2BE2]">
+                <Info size={24} />
+              </div>
+              <h2 className="text-xl font-black text-white">חוקי הליגה</h2>
           </div>
-          <h2 className="text-xl font-black text-white">חוקי המשחק</h2>
+          <p className="text-[#A594BA] text-sm">הסולם חי ונושם רק בזכותכם! ככל שתשחקו יותר, כך הליגה תהיה מעניינת יותר.</p>
         </div>
         
         <ul className="space-y-4 text-sm text-[#A594BA]">
           <li className="flex items-start gap-3">
             <span className="bg-[#E020A3] w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">1</span>
-            <div><strong className="text-white">צ׳אלנג׳:</strong> רשאים לאתגר שחקנים המדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליכם. חובה לקבל אתגר תוך 7 ימים.</div>
+            <div><strong className="text-white">צ׳אלנג׳:</strong> רשאים לאתגר שחקנים המדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליכם למשחק בשיטת <strong>הטוב מ-5</strong>. חובה לקבל אתגר תוך 7 ימים ולתאם משחק.</div>
           </li>
           <li className="flex items-start gap-3">
             <span className="bg-[#8A2BE2] w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">2</span>
-            <div><strong className="text-white">שיטה וניצחון:</strong> הטוב מ-5. ניצחת שחקן מעליך? <strong className="text-white">תפסת לו את המקום</strong>! המפסיד ומי שביניכם יורדים שלב.</div>
+            <div><strong className="text-white">ניצחון ומיקומים:</strong> ניצחת שחקן מעליך? <strong className="text-white">תפסת לו את המקום</strong>! המפסיד ומי שביניכם יורדים שלב. אם השחקן המדורג גבוה ניצח, המיקומים נשארים ללא שינוי.</div>
           </li>
         </ul>
       </div>
@@ -471,6 +511,13 @@ export default function App() {
               className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all placeholder-[#A594BA]/50" 
               placeholder="9 ספרות חובה" />
           </div>
+          <div>
+            <label className="block text-sm font-bold text-[#A594BA] mb-2">קוד גישה (PIN)</label>
+            <input required type="password" name="pin" pattern="\d{4}" title="אנא הזן 4 ספרות בדיוק" maxLength={4}
+              className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:ring-1 focus:ring-[#E020A3] focus:outline-none transition-all tracking-[0.5em] text-center placeholder-[#A594BA]/50" 
+              placeholder="••••" />
+              <p className="text-xs text-[#A594BA]/70 mt-2">* בחר קוד בן 4 ספרות שישמש אותך להתחברות בעתיד.</p>
+          </div>
           
           <div className="pt-2 border-t border-white/10">
             <div className="flex items-start gap-3 mt-4">
@@ -479,7 +526,9 @@ export default function App() {
             </div>
             <div className="flex items-start gap-3 mt-4">
               <input required type="checkbox" id="rulesCheck" className="mt-1 w-4 h-4 accent-[#E020A3]" />
-              <label htmlFor="rulesCheck" className="text-sm text-[#A594BA] leading-tight cursor-pointer">קראתי והבנתי את תקנון וחוקי הליגה.</label>
+              <label htmlFor="rulesCheck" className="text-sm text-[#A594BA] leading-tight">
+                  <span className="cursor-pointer" onClick={() => setShowRulesModal(true)}>קראתי והבנתי את <span className="text-[#E020A3] underline">תקנון וחוקי הליגה</span>.</span>
+              </label>
             </div>
           </div>
 
@@ -661,7 +710,7 @@ export default function App() {
                   <th className="p-3 font-medium text-center">מידע</th>
                   <th className="p-3 font-medium">דירוג</th>
                   <th className="p-3 font-medium">שם שחקן</th>
-                  <th className="p-3 font-medium text-center">מחק</th>
+                  <th className="p-3 font-medium text-center">קוד/מחק</th>
                 </tr>
               </thead>
               <tbody>
@@ -684,8 +733,11 @@ export default function App() {
                         <input type="text" value={currentData.name} onChange={(e) => handleAdminEditChange(player.id, 'name', e.target.value)} 
                         className={`w-full px-3 py-2 bg-[#0A0410]/50 border ${isEdited ? 'border-[#FF0055]' : 'border-white/10'} rounded-xl text-white focus:outline-none`} />
                       </td>
-                      <td className="p-2 text-center">
-                        <button onClick={() => adminDeletePlayer(player.id)} className="text-[#FF0055] hover:text-white bg-[#FF0055]/10 hover:bg-[#FF0055] p-2 rounded-full transition-colors">
+                      <td className="p-2 text-center flex justify-center gap-2">
+                        <button onClick={() => adminResetPin(player.id)} title="אפס קוד גישה" className="text-yellow-500 hover:text-white bg-yellow-500/10 p-2 rounded-full transition-colors">
+                          <KeyRound size={16} />
+                        </button>
+                        <button onClick={() => adminDeletePlayer(player.id)} title="מחק שחקן" className="text-[#FF0055] hover:text-white bg-[#FF0055]/10 hover:bg-[#FF0055] p-2 rounded-full transition-colors">
                           <Trash2 size={16} className="mx-auto" />
                         </button>
                       </td>
@@ -737,23 +789,79 @@ export default function App() {
   };
 
   // --- Modals ---
+  const renderRulesModal = () => {
+      if (!showRulesModal) return null;
+      return (
+          <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in" onClick={() => setShowRulesModal(false)}>
+              <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-6 max-w-md w-full shadow-2xl relative max-h-[80vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setShowRulesModal(false)} className="absolute top-4 left-4 text-[#A594BA] hover:text-white bg-white/5 rounded-full p-1">✕</button>
+                  <h3 className="text-2xl font-black text-white mb-4 border-b border-white/10 pb-4">תקנון ליגת הסקווש</h3>
+                  
+                  <div className="text-[#A594BA] space-y-4 text-sm leading-relaxed">
+                      <p>ברוכים הבאים לליגת הסקווש! בהרשמתך לליגה, הנך מסכים/ה לתנאים הבאים:</p>
+                      
+                      <h4 className="text-white font-bold mt-4">1. פרטיות ושיתוף מספר טלפון</h4>
+                      <p>לצורך תיאום המשחקים בין השחקנים, <strong className="text-white">מספר הטלפון שתזין/י יהיה גלוי לשאר השחקנים הרשומים במערכת</strong>. השימוש במספר זה מותר אך ורק לצורך תיאום משחקי הליגה באמצעות אפליקציית WhatsApp.</p>
+                      
+                      <h4 className="text-white font-bold mt-4">2. חוקי הליגה</h4>
+                      <ul className="list-disc pr-5 space-y-2">
+                          <li>הליגה פועלת במודל החלפה (Leapfrog).</li>
+                          <li>שחקן רשאי לאתגר שחקנים המדורגים עד 3 שלבים מעליו.</li>
+                          <li>המשחקים משוחקים בשיטת "הטוב מ-5" מערכות (עד 11 נקודות במערכה, הפרש של 2 במידת הצורך).</li>
+                          <li>על השחקן המאותגר לקבל את האתגר ולתאם משחק בתוך 7 ימים ממועד הפנייה.</li>
+                          <li>מנצח מזין את התוצאה במערכת.</li>
+                          <li>ניצחון של מאתגר יעניק לו את המיקום של המפסיד, והמפסיד (וכל מי שביניהם) ירד שלב אחד.</li>
+                          <li>הזנת תוצאה שקרית תוביל להרחקה מיידית מהליגה.</li>
+                      </ul>
+
+                      <h4 className="text-white font-bold mt-4">3. הצהרת בריאות</h4>
+                      <p>השחקן מצהיר כי הוא בריא וכשיר לפעילות ספורטיבית. הנהלת הליגה אינה אחראית לכל נזק פיזי או רפואי שייגרם במהלך המשחקים.</p>
+                  </div>
+                  
+                  <button onClick={() => setShowRulesModal(false)} className="w-full mt-6 bg-[#E020A3] hover:bg-[#E020A3]/80 text-white font-bold py-3 rounded-full transition-colors">
+                      קראתי, הבנתי ואני מסכים/ה
+                  </button>
+              </div>
+          </div>
+      )
+  }
+
   const renderLoginModal = () => {
     if (!loginModalOpen) return null;
     return (
-      <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in">
-        <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative">
-          <button onClick={() => setLoginModalOpen(false)} className="absolute top-4 left-4 text-[#A594BA] hover:text-white">✕</button>
-          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 text-white">
-            <LogIn size={32} />
-          </div>
-          <h3 className="text-2xl font-black text-center text-white mb-6">כניסה לרשומים</h3>
-          <form onSubmit={handleLogin}>
-            <input required type="tel" name="phone" placeholder="מספר וואטסאפ איתו נרשמת" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:outline-none text-center mb-4" />
-            <button type="submit" className="w-full bg-gradient-to-r from-[#8A2BE2] to-[#E020A3] text-white font-black py-4 rounded-full active:scale-95 transition-all">
-              התחבר
-            </button>
-          </form>
-        </div>
+      <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => { if(!forgotPasswordOpen) setLoginModalOpen(false) }}>
+        
+        {forgotPasswordOpen ? (
+            <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setForgotPasswordOpen(false)} className="absolute top-4 left-4 text-[#A594BA] hover:text-white">חזור</button>
+                <h3 className="text-xl font-black text-center text-white mb-2 mt-4">שכחת קוד גישה?</h3>
+                <p className="text-center text-sm text-[#A594BA] mb-6">מטעמי אבטחה, שחזור קוד מתבצע רק מול הנהלת הליגה.</p>
+                <form onSubmit={handleForgotPassword}>
+                    <input required type="tel" name="phone" placeholder="הזן את מספר הוואטסאפ שלך" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:outline-none text-center mb-4" />
+                    <button type="submit" className="w-full bg-white/10 text-white font-bold py-4 rounded-full hover:bg-white/20 transition-all">
+                        בדוק פרטים
+                    </button>
+                </form>
+            </div>
+        ) : (
+            <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setLoginModalOpen(false)} className="absolute top-4 left-4 text-[#A594BA] hover:text-white">✕</button>
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 text-white">
+                <LogIn size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-center text-white mb-6">כניסה לרשומים</h3>
+              <form onSubmit={handleLogin}>
+                <input required type="tel" name="phone" placeholder="מספר וואטסאפ" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:outline-none text-center mb-3" />
+                <input required type="password" name="pin" placeholder="קוד גישה (4 ספרות)" maxLength={4} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl focus:border-[#E020A3] focus:outline-none text-center tracking-[0.5em] mb-4" />
+                <button type="submit" className="w-full bg-gradient-to-r from-[#8A2BE2] to-[#E020A3] text-white font-black py-4 rounded-full active:scale-95 transition-all mb-2">
+                  התחבר
+                </button>
+                <button type="button" onClick={() => setForgotPasswordOpen(true)} className="w-full text-[#A594BA] text-sm py-2 hover:text-white transition-colors">
+                    שכחתי קוד גישה
+                </button>
+              </form>
+            </div>
+        )}
       </div>
     );
   };
@@ -846,7 +954,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0A0410] text-white pb-24 relative overflow-hidden" dir="rtl">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap'); * { font-family: 'Heebo', sans-serif; }`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap'); 
+        * { font-family: 'Heebo', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+      `}</style>
 
       {/* Ambient Glow */}
       <div className="fixed top-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#8A2BE2]/10 blur-[100px] pointer-events-none z-0"></div>
@@ -864,6 +978,7 @@ export default function App() {
       {renderLoginModal()}
       {renderStatsModal()}
       {renderAdminPlayerModal()}
+      {renderRulesModal()}
       
       {matchModal.isOpen && matchModal.opponent && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in">
