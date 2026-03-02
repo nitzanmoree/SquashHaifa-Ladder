@@ -27,6 +27,7 @@ export default function App() {
   const [matches, setMatches] = useState([]); 
   const [leagueConfig, setLeagueConfig] = useState({ adminName: "ניצן מורה", adminPhone: "054-4372323", whatsappGroupLink: "" });
   const [view, setView] = useState('home');
+  const [historyFilter, setHistoryFilter] = useState('all'); // חדש: סינון היסטוריה
   const [loading, setLoading] = useState(true);
   const [isSubmittingJoin, setIsSubmittingJoin] = useState(false);
   const [authError, setAuthError] = useState(null);
@@ -92,12 +93,10 @@ export default function App() {
       setPlayers(playersData);
       setLoading(false);
       
-      // ניתוב אוטומטי בהתבסס על החיבור המקומי (טלפון) ולא רק על החיבור האנונימי של פיירבייס
       const isLocallyRegistered = localUserId && playersData.some(p => p.id === localUserId);
       const isFirebaseRegistered = playersData.some(p => p.id === user.uid);
       
       if (!isLocallyRegistered && !isFirebaseRegistered && view !== 'rules' && view !== 'admin') {
-         // השאר במסך הבית או הרשמה אם אין חיבור תקף
          if(view !== 'home' && view !== 'join') setView('home');
       } else if ((isLocallyRegistered || isFirebaseRegistered) && view === 'join') {
         setView('ladder');
@@ -198,7 +197,6 @@ export default function App() {
         return;
     }
 
-    // בדיקת כפילות טלפון
     const existingPlayer = players.find(p => cleanPhone(p.phone) === cleanedInputPhone);
     if (existingPlayer) {
         alert("מספר טלפון זה כבר רשום במערכת. אנא התחבר דרך 'כניסה לרשומים' או השתמש במספר אחר.");
@@ -309,8 +307,6 @@ export default function App() {
     if (adminUsername === 'admin' && adminPassword === 'squash2026') {
       setIsAdmin(true);
       setAdminLoginError(false);
-      
-      // Initialize edit state for config if needed
       setAdminConfigEdit({ ...leagueConfig });
     } else {
       setAdminLoginError(true);
@@ -397,7 +393,6 @@ export default function App() {
        return;
     }
     
-    // אזהרה חמורה למנהל
     const confirmMsg = "אזהרה!\nהפיכת תוצאה תשחזר את הדירוג של *כל* השחקנים למצב שהיה בדיוק לפני משחק זה, ותחשב את הניצחון ההפוך.\n\nאם שוחקו עוד משחקים מאז, השחזור עלול לדרוס את תוצאותיהם בדירוג ולשבש את הסולם!\n\nהאם אתה בטוח שברצונך להמשיך?";
     
     if (window.confirm(confirmMsg)) {
@@ -442,7 +437,6 @@ export default function App() {
               whatsappGroupLink: adminConfigEdit.whatsappGroupLink || ""
           });
       } else {
-          // If document doesn't exist yet, create it
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'config'), {
               adminName: adminConfigEdit.adminName,
               adminPhone: adminConfigEdit.adminPhone,
@@ -459,9 +453,7 @@ export default function App() {
   const adminResetLeague = async () => {
     if (!confirmResetChecked) return;
     try {
-      // מחיקת כל השחקנים
       const playerDeletions = players.map(p => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', p.id)));
-      // מחיקת כל היסטוריית המשחקים
       const matchDeletions = matches.map(m => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', m.id)));
       
       await Promise.all([...playerDeletions, ...matchDeletions]);
@@ -478,7 +470,6 @@ export default function App() {
   // --- Renders ---
   const renderHome = () => (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-      {/* Hero Header */}
       <div className="text-center pt-8 pb-2 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#E020A3]/20 rounded-full blur-[60px] z-0"></div>
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#E020A3] mb-6 shadow-[0_0_30px_rgba(224,32,163,0.5)] relative z-10">
@@ -490,7 +481,6 @@ export default function App() {
         <p className="text-[#A594BA] relative z-10 font-medium tracking-wide">זירת הסולם הרשמית</p>
       </div>
 
-      {/* Login / Actions Section */}
       <div className="relative z-10 flex flex-col gap-4">
         {myPlayer ? (
           <div className="bg-white/10 backdrop-blur-xl p-5 rounded-[24px] border border-[#8A2BE2]/30 text-center shadow-[0_0_20px_rgba(138,43,226,0.2)]">
@@ -516,7 +506,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Rules Section */}
       <div className="bg-white/5 backdrop-blur-xl rounded-[32px] p-7 border border-white/10 shadow-xl relative z-10 text-right mt-6">
         <div className="flex flex-col gap-2 mb-4 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
@@ -531,11 +520,15 @@ export default function App() {
         <ul className="space-y-4 text-sm text-[#A594BA]">
           <li className="flex items-start gap-3">
             <span className="bg-[#E020A3] w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">1</span>
-            <div><strong className="text-white">צ׳אלנג׳:</strong> רשאים לאתגר שחקנים המדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליכם למשחק בשיטת <strong>הטוב מ-5</strong>. חובה לקבל אתגר תוך 7 ימים ולתאם משחק.</div>
+            <div><strong className="text-white">צ׳אלנג׳:</strong> רשאים לאתגר שחקנים המדורגים עד <strong className="text-[#E020A3]">3 שלבים</strong> מעליכם (לחיצה על הכפתור תפתח וואטסאפ). חובה לקבל אתגר תוך 7 ימים ולתאם משחק בשיטת <strong>הטוב מ-5</strong>.</div>
           </li>
           <li className="flex items-start gap-3">
             <span className="bg-[#8A2BE2] w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">2</span>
-            <div><strong className="text-white">ניצחון ומיקומים:</strong> ניצחת שחקן מעליך? <strong className="text-white">תפסת לו את המקום</strong>! המפסיד ומי שביניכם יורדים שלב. אם השחקן המדורג גבוה ניצח, המיקומים נשארים ללא שינוי.</div>
+            <div><strong className="text-white">ניצחון ומיקומים:</strong> ניצחת שחקן מעליך? <strong className="text-white">תפסת לו את המקום</strong>! המפסיד ומי שביניכם יורדים שלב. אם השחקן המדורג גבוה ניצח, המיקומים נשארים.</div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">3</span>
+            <div><strong className="text-white">איך מעדכנים תוצאה?</strong> בסיום המשחק, <strong className="text-[#E020A3]">המנצח בלבד</strong> נכנס לסולם ולוחץ על לחצן ״ניצחון״ שמופיע ליד שם השחקן שהפסיד. המערכת תעשה את השאר!</div>
           </li>
         </ul>
 
@@ -544,7 +537,6 @@ export default function App() {
             <p className="text-[#A594BA] text-sm">טלפון לבירורים: <a href={`tel:${leagueConfig.adminPhone}`} className="text-[#E020A3] hover:underline" dir="ltr">{leagueConfig.adminPhone}</a></p>
         </div>
 
-        {/* WhatsApp Group Button */}
         {leagueConfig.whatsappGroupLink && (
             <a href={leagueConfig.whatsappGroupLink} target="_blank" rel="noopener noreferrer" className="mt-4 w-full bg-[#25D366] hover:bg-[#20b858] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-[0_4px_15px_rgba(37,211,102,0.3)] active:scale-95">
                 <MessageCircle size={20} />
@@ -553,7 +545,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Ladder Preview */}
       <div className="pt-4 pb-8">
         <h3 className="text-center font-bold text-[#E020A3] mb-4 uppercase tracking-widest text-xs">הצצה לדירוג הנוכחי</h3>
         <div className="space-y-3">
@@ -685,7 +676,7 @@ export default function App() {
                 <h3 className={`font-bold text-lg tracking-wide ${isMe ? 'text-white drop-shadow-md' : 'text-white'}`}>
                   {player.name} {isMe && <span className="text-[#E020A3] text-sm ml-1">(את/ה)</span>}
                 </h3>
-                <span className="text-[#A594BA] text-xs flex items-center gap-1 mt-0.5"><BarChart2 size={12}/> לחץ לסטטיסטיקה</span>
+                <span className="text-[#A594BA] text-xs flex items-center gap-1 mt-0.5"><BarChart2 size={12}/> לחץ לסטטיסטיקה וראש בראש</span>
               </div>
             </div>
 
@@ -705,7 +696,7 @@ export default function App() {
                  onClick={(e) => { e.stopPropagation(); setMatchModal({ isOpen: true, opponent: player }); }}
                  className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold transition-all border border-white/20 active:scale-95"
                >
-                 עדכן ניצחון
+                 ניצחון
                </button>
               )}
             </div>
@@ -715,39 +706,75 @@ export default function App() {
     </div>
   );
 
-  const renderHistory = () => (
-    <div className="space-y-6 pb-8 mt-4 animate-in fade-in duration-300">
-      <div className="text-center pb-2 relative">
-         <h2 className="text-3xl font-black text-white relative z-10 flex justify-center items-center gap-3">
-            <RefreshCw className="text-[#8A2BE2]" size={32} /> תוצאות אחרונות
-         </h2>
-         <p className="text-[#A594BA] mt-2 text-sm relative z-10">היסטוריית המשחקים של הליגה</p>
-      </div>
+  const renderHistory = () => {
+    // סינון המשחקים לתצוגה: הכל או רק שלי
+    const displayedMatches = historyFilter === 'personal' && localUserId 
+        ? matches.filter(m => m.winnerId === localUserId || m.loserId === localUserId)
+        : matches;
 
-      <div className="space-y-3">
-        {matches.length === 0 ? (
-          <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/10 text-[#A594BA]">אין עדיין תיעוד משחקים.</div>
-        ) : (
-          matches.map(match => (
-            <div key={match.id} className="bg-white/5 backdrop-blur-md p-5 rounded-[20px] border border-white/10 flex justify-between items-center">
-              <div className="flex flex-col items-center flex-1">
-                <span className="text-[#E020A3] text-xs font-bold uppercase mb-1">מנצח/ת</span>
-                <span className="text-white font-black text-lg">{match.winnerName}</span>
-              </div>
-              <div className="flex flex-col items-center px-4">
-                <div className="bg-white/10 px-3 py-1 rounded-full text-[#A594BA] text-[10px] whitespace-nowrap mb-2">{match.dateString}</div>
-                <Trophy size={16} className="text-yellow-500 opacity-50" />
-              </div>
-              <div className="flex flex-col items-center flex-1">
-                <span className="text-[#A594BA] text-xs font-bold mb-1">מפסיד/ה</span>
-                <span className="text-white/70 font-medium text-lg">{match.loserName}</span>
-              </div>
-            </div>
-          ))
-        )}
+    return (
+      <div className="space-y-6 pb-8 mt-4 animate-in fade-in duration-300">
+        <div className="text-center pb-2 relative">
+           <h2 className="text-3xl font-black text-white relative z-10 flex justify-center items-center gap-3">
+              <RefreshCw className="text-[#8A2BE2]" size={32} /> תוצאות אחרונות
+           </h2>
+           <p className="text-[#A594BA] mt-2 text-sm relative z-10">היסטוריית המשחקים של הליגה</p>
+        </div>
+
+        {/* כפתורי סינון היסטוריה */}
+        <div className="flex justify-center gap-3 mb-6 bg-white/5 p-1.5 rounded-full border border-white/10 max-w-xs mx-auto">
+            <button 
+                onClick={() => setHistoryFilter('all')} 
+                className={`flex-1 py-2 rounded-full text-sm font-bold transition-all ${historyFilter === 'all' ? 'bg-[#E020A3] text-white shadow-lg' : 'text-[#A594BA] hover:text-white'}`}
+            >
+                כל הליגה
+            </button>
+            {localUserId && (
+                <button 
+                    onClick={() => setHistoryFilter('personal')} 
+                    className={`flex-1 py-2 rounded-full text-sm font-bold transition-all ${historyFilter === 'personal' ? 'bg-[#8A2BE2] text-white shadow-lg' : 'text-[#A594BA] hover:text-white'}`}
+                >
+                    המשחקים שלי
+                </button>
+            )}
+        </div>
+
+        <div className="space-y-3">
+          {displayedMatches.length === 0 ? (
+            <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/10 text-[#A594BA]">אין משחקים להצגה.</div>
+          ) : (
+            displayedMatches.map(match => {
+              const isMyWin = match.winnerId === localUserId;
+              const isMyLoss = match.loserId === localUserId;
+              
+              let cardStyle = "bg-white/5 border-white/10";
+              if (historyFilter === 'personal') {
+                  if (isMyWin) cardStyle = "bg-emerald-500/10 border-emerald-500/30";
+                  if (isMyLoss) cardStyle = "bg-slate-500/10 border-slate-500/30";
+              }
+
+              return (
+                <div key={match.id} className={`backdrop-blur-md p-5 rounded-[20px] border flex justify-between items-center transition-all ${cardStyle}`}>
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-[#E020A3] text-xs font-bold uppercase mb-1">מנצח/ת</span>
+                    <span className={`font-black text-lg ${isMyWin ? 'text-emerald-400' : 'text-white'}`}>{match.winnerName} {isMyWin && '(את/ה)'}</span>
+                  </div>
+                  <div className="flex flex-col items-center px-4">
+                    <div className="bg-white/10 px-3 py-1 rounded-full text-[#A594BA] text-[10px] whitespace-nowrap mb-2">{match.dateString}</div>
+                    <Trophy size={16} className="text-yellow-500 opacity-50" />
+                  </div>
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-[#A594BA] text-xs font-bold mb-1">מפסיד/ה</span>
+                    <span className={`font-medium text-lg ${isMyLoss ? 'text-slate-400' : 'text-white/70'}`}>{match.loserName} {isMyLoss && '(את/ה)'}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderAdmin = () => {
     if (!isAdmin) {
@@ -951,6 +978,14 @@ export default function App() {
                       <h4 className="text-white font-bold mt-4">3. הצהרת בריאות</h4>
                       <p>השחקן מצהיר כי הוא בריא וכשיר לפעילות ספורטיבית. הנהלת הליגה אינה אחראית לכל נזק פיזי או רפואי שייגרם במהלך המשחקים.</p>
                       
+                      <h4 className="text-white font-bold mt-4">4. מדריך טכני - שימוש באפליקציה</h4>
+                      <ul className="list-disc pr-5 space-y-2">
+                          <li><strong className="text-white">כניסה:</strong> לאחר ההרשמה, התחברו עם מספר הוואטסאפ וקוד ה-PIN שלכם. רק משתמשים מחוברים יכולים לבצע פעולות בסולם.</li>
+                          <li><strong className="text-white">יצירת צ'אלנג':</strong> לחצו על כפתור ״צ׳אלנג׳״ ליד השחקן שתרצו לאתגר. הפעולה תפתח חלון וואטסאפ ישירות אליו עם הודעה מוכנה.</li>
+                          <li><strong className="text-white">דיווח תוצאות:</strong> הזנת התוצאה היא באחריות <strong className="text-[#E020A3]">המנצח בלבד</strong>. המנצח יאתר את המפסיד בסולם וילחץ על כפתור ״ניצחון״ שלידו (שימו לב - הכפתור יופיע רק לשחקנים שמותר לכם לשחק נגדם).</li>
+                          <li><strong className="text-white">סטטיסטיקות:</strong> בלחיצה על כרטיסיית שחקן תוכלו לראות את הסטטיסטיקה שלו, ובלשונית "היסטוריה" למטה תראו את כל המשחקים האחרונים ששוחקו בליגה.</li>
+                      </ul>
+
                       <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center">
                           <p className="text-white font-bold mb-1">מנהל הליגה: {leagueConfig.adminName}</p>
                           <p>טלפון לבירורים ועזרה: <a href={`tel:${leagueConfig.adminPhone}`} className="text-[#E020A3] hover:underline" dir="ltr">{leagueConfig.adminPhone}</a></p>
@@ -1060,6 +1095,19 @@ export default function App() {
     if (!statsModalPlayer) return null;
     const stats = getPlayerStats(statsModalPlayer.id);
     
+    // חישוב היסטוריה אישית (ראש בראש) אם המשתמש מחובר
+    let h2hStats = null;
+    if (localUserId && localUserId !== statsModalPlayer.id) {
+        const h2hMatches = matches.filter(m => 
+            (m.winnerId === statsModalPlayer.id && m.loserId === localUserId) ||
+            (m.loserId === statsModalPlayer.id && m.winnerId === localUserId)
+        );
+        h2hStats = {
+            myWins: h2hMatches.filter(m => m.winnerId === localUserId).length,
+            opponentWins: h2hMatches.filter(m => m.winnerId === statsModalPlayer.id).length
+        };
+    }
+    
     return (
       <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setStatsModalPlayer(null)}>
         <div className="bg-gradient-to-br from-[#1B0B2E] to-[#0A0410] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-[0_0_40px_rgba(138,43,226,0.3)] relative text-center" onClick={e => e.stopPropagation()}>
@@ -1072,7 +1120,7 @@ export default function App() {
           <h3 className="text-2xl font-black text-white mb-1">{statsModalPlayer.name}</h3>
           <p className="text-[#A594BA] text-sm mb-6 flex items-center justify-center gap-1"><Trophy size={14}/> מקום בסולם</p>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-2">
             <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
               <div className="text-3xl font-black text-white">{stats.total}</div>
               <div className="text-xs text-[#A594BA] mt-1 font-bold">משחקים</div>
@@ -1090,6 +1138,25 @@ export default function App() {
               <div className="text-xs text-[#A594BA] mt-1 font-bold">הפסדים</div>
             </div>
           </div>
+
+          {/* תצוגת ראש בראש */}
+          {h2hStats && (
+              <div className="mt-6 pt-6 border-t border-white/10">
+                  <h4 className="text-white font-bold mb-4 text-sm uppercase tracking-wider text-center">היסטוריה מולך (ראש בראש)</h4>
+                  <div className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/5">
+                      <div className="text-center flex-1">
+                          <div className="text-2xl font-black text-emerald-400">{h2hStats.myWins}</div>
+                          <div className="text-[10px] text-[#A594BA] font-bold mt-1">ניצחונות שלך</div>
+                      </div>
+                      <div className="text-xl font-black text-white/20">-</div>
+                      <div className="text-center flex-1">
+                          <div className="text-2xl font-black text-slate-400">{h2hStats.opponentWins}</div>
+                          <div className="text-[10px] text-[#A594BA] font-bold mt-1">ניצחונות שלו/ה</div>
+                      </div>
+                  </div>
+              </div>
+          )}
+
         </div>
       </div>
     );
