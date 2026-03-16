@@ -39,7 +39,7 @@ const translations = {
     ladder_preview: "הצצה לדירוג", no_active_players: "אין שחקנים.", show_all_ladder: "הצג הכל",
     global_network: "רשת הליגות הארצית",
     join_title: "הרשמה לליגה", f_name: "שם מלא", f_name_ph: "פרטי ומשפחה",
-    f_phone: "וואטסאפ", f_phone_note: "* וודאו שהמספר מדויק לתיאום משחקים.",
+    f_phone: "מספר וואטסאפ", f_phone_note: "* וודאו שהמספר מדויק לתיאום משחקים.",
     f_email: "אימייל", f_id: "ת.ז / דרכון",
     f_pin: "קוד PIN", f_pin_ph: "4 ספרות", f_pin_note: "* לשימוש בכניסות הבאות.",
     f_health: "אני מצהיר כי אני כשיר לפעילות ספורטיבית.",
@@ -59,7 +59,7 @@ const translations = {
     forgot_pin_title: "שכחת PIN?", forgot_pin_sub: "פנה למנהל המועדון.", btn_check_details: "בדיקה",
     rules_modal_title: "תקנון המועדון", reset_modal_title: "אזהרה!", reset_modal_sub: "מחיקה סופית של הנתונים.", reset_modal_confirm: "מאשר מחיקה למועדון", btn_delete_all: "מחק",
     stats_rank: "מקום", stats_frozen: "מוקפא", stats_matches: "משחקים", stats_winrate: "הצלחה", stats_wins: "ניצחונות", stats_losses: "הפסדים", h2h_title: "ראש בראש", h2h_my_wins: "שלך", h2h_opp_wins: "שלו/ה",
-    player_details: "פרטי שחקן", p_frozen: "מוקפא", p_name: "שם", p_phone: "טלפון", p_email: "אימייל", p_id: "ת.ז", p_health: "בריאות", p_rules: "תקנון", close: "סגור",
+    player_details: "פרטי שחקן", p_frozen: "מוקפא", p_name: "שם מלא", p_phone: "וואטסאפ", p_email: "אימייל", p_id: "ת.ז", p_health: "הצהרת בריאות", p_rules: "תקנון", close: "סגור",
     rules_welcome: "ברוכים הבאים! בהרשמתכם אתם מסכימים לתנאים הבאים:",
     privacy_title: "1. פרטיות", privacy_text: "הטלפון יהיה גלוי לשאר השחקנים לתיאום משחקים בלבד.",
     detailed_rules_title: "2. חוקי המשחק", dr_1: "דירוג בשיטת סולם.", dr_2: "אתגר עד 3 שלבים מעליך.", dr_3: "משחק בשיטת הטוב מ-5.", dr_4: "תיאום משחק תוך 7 ימים.", dr_5: "מנצח מזין תוצאה.", dr_6: "מנצח תופס את מקום המפסיד.", dr_7: "דיווח שקרי גורר הרחקה.",
@@ -135,15 +135,9 @@ export default function App() {
   const [adminPrivateData, setAdminPrivateData] = useState({});
   
   const [leagueConfig, setLeagueConfig] = useState({ 
-      displayName: "סקווש חיפה", 
-      language: "he",
-      adminName: "ניצן מורה", 
-      adminPhone: "054-4372323", 
-      adminPassword: "squash2026",
-      whatsappGroupLink: "",
-      themePrimary: "#8A2BE2",
-      themeSecondary: "#E020A3",
-      docId: null
+      displayName: "סקווש חיפה", language: "he", adminName: "ניצן מורה", 
+      adminPhone: "054-4372323", adminPassword: "squash2026",
+      whatsappGroupLink: "", themePrimary: "#8A2BE2", themeSecondary: "#E020A3", docId: null
   });
 
   const lang = leagueConfig.language || 'he';
@@ -169,7 +163,6 @@ export default function App() {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [confirmResetChecked, setConfirmResetChecked] = useState(false);
-
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState(false);
@@ -252,21 +245,12 @@ export default function App() {
   const activePlayers = players.filter(p => p.isActive !== false);
   const cleanPhone = (p) => p.replace(/\D/g, '');
 
-  const exportPlayersToCSV = () => {
-    const headers = [dict.stats_rank, dict.t_name, 'Phone', 'Email', 'ID', 'PIN', 'Status', 'Joined'];
-    const rows = players.map(p => {
-        const priv = adminPrivateData[p.id] || {};
-        return [p.isActive === false ? 'Frozen' : p.rank, p.name, p.phone, priv.email || '', priv.idNumber || '', priv.pin || '', p.isActive === false ? 'Frozen' : 'Active', p.joinedAt ? new Date(p.joinedAt).toLocaleDateString() : ''];
-    });
-    const csvContent = [headers.join(','), ...rows.map(e => e.map(field => `"${field}"`).join(','))].join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `players_${currentClubId}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const getPlayerStats = (playerId) => {
+    const playerMatches = matches.filter(m => m.winnerId === playerId || m.loserId === playerId);
+    const wins = playerMatches.filter(m => m.winnerId === playerId).length;
+    const losses = playerMatches.length - wins;
+    const winPercent = playerMatches.length > 0 ? Math.round((wins / playerMatches.length) * 100) : 0;
+    return { total: playerMatches.length, wins, losses, winPercent };
   };
 
   const handleLogin = async (e) => {
@@ -290,12 +274,6 @@ export default function App() {
     alert(lang === 'he' ? "מספר הטלפון או קוד הגישה שגויים." : "Invalid phone or PIN.");
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem(`squash_user_id_${currentClubId}`);
-    setLocalUserId(null);
-    setView('home');
-  };
-
   const handleJoin = async (e) => {
     e.preventDefault();
     if (isSubmittingJoin) return;
@@ -303,7 +281,6 @@ export default function App() {
     const pin = e.target.pin.value;
     if (pin.length !== 4) { alert(dict.f_pin_ph); return; }
     if (players.some(p => cleanPhone(p.phone) === cleanPhone(phone))) { alert(lang === 'he' ? "רשום כבר." : "Already registered."); return; }
-
     setIsSubmittingJoin(true);
     const newRank = activePlayers.length > 0 ? activePlayers.length + 1 : 1;
     try {
@@ -319,11 +296,13 @@ export default function App() {
     } catch (err) { console.error(err); } finally { setIsSubmittingJoin(false); }
   };
 
+  const handleLogout = () => { localStorage.removeItem(`squash_user_id_${currentClubId}`); setLocalUserId(null); setView('home'); };
+
   const togglePlayerStatus = async () => {
       if (!myPlayer) return;
       const newStatus = myPlayer.isActive === false;
       if (newStatus === false) {
-           if (!window.confirm(lang === 'he' ? "בטוח שברצונך לצאת מהליגה?" : "Are you sure you want to freeze your account?")) return;
+           if (!window.confirm(lang === 'he' ? "בטוח?" : "Sure?")) return;
            const sortedActive = [...activePlayers].sort((a,b) => a.rank - b.rank);
            const updates = sortedActive.filter(p => p.rank > myPlayer.rank).map(p => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, p.id), { rank: p.rank - 1 }));
            updates.push(updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, myPlayer.id), { isActive: false, rank: 9999 }));
@@ -353,24 +332,19 @@ export default function App() {
     } catch (err) { console.error(err); }
   };
 
-  const openWhatsApp = (phone, myName, e) => {
-    e.stopPropagation(); 
-    const finalPhone = cleanPhone(phone).startsWith('0') ? '972' + cleanPhone(phone).substring(1) : cleanPhone(phone);
-    const t_msg = lang === 'he' ? `היי! מדבר ${myName} מליגת הסקווש. אני רוצה לעשות לך צ׳אלנג׳ למשחק במסגרת הסולם! מתי נוח לך? 🎾` : `Hi! This is ${myName} from the Squash League. Challenge! 🎾`;
-    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(t_msg)}`, '_blank');
-  };
-
   const handleAdminLogin = (e) => {
     e.preventDefault();
     if (adminUsername === 'superadmin' && adminPassword === 'master2026') { setIsSuperAdmin(true); setAdminLoginError(false); return; }
     if (adminUsername === 'admin' && adminPassword === (leagueConfig.adminPassword || 'squash2026')) { setIsAdmin(true); setAdminLoginError(false); setAdminConfigEdit({ ...leagueConfig }); } else { setAdminLoginError(true); }
   };
 
+  const handleAdminEditChange = (id, field, value) => { setAdminEdits(prev => ({ ...prev, [id]: { ...(prev[id] || players.find(p => p.id === id)), [field]: value } })); };
+
   const saveAdminEdits = async () => {
     const updates = Object.keys(adminEdits).map(id => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, id), { name: adminEdits[id].name, rank: parseInt(adminEdits[id].rank, 10), isActive: adminEdits[id].isActive !== false }));
     await Promise.all(updates);
     setAdminEdits({});
-    alert(lang === 'he' ? "נשמר בהצלחה!" : "Saved!");
+    alert(lang === 'he' ? "נשמר!" : "Saved!");
   };
 
   const handleCreateClub = async (e) => {
@@ -384,81 +358,6 @@ export default function App() {
           setNewClubForm({ id: '', name: '', password: '', language: 'he', adminName: '' });
       } catch (err) { console.error(err); }
   };
-
-  const renderSuperAdmin = () => (
-      <div className="space-y-6 pb-8 animate-in fade-in duration-500 text-start" dir={dict.dir}>
-          <div className="bg-gradient-to-r from-indigo-900 to-purple-900 p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-indigo-500/30">
-              <Globe size={48} className="text-white/20 absolute -end-4 -bottom-4 w-32 h-32" />
-              <h2 className="text-3xl font-black text-white relative z-10 flex items-center gap-3 mb-2">{dict.sa_title}</h2>
-              <p className="text-indigo-200 relative z-10">{dict.sa_subtitle}</p>
-          </div>
-          <div className="bg-white/5 p-6 rounded-[24px] border border-white/10">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-4"><Plus className="text-emerald-400" /> {dict.sa_new_club}</h3>
-              <form onSubmit={handleCreateClub} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                  <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_id}</label><input type="text" value={newClubForm.id} onChange={(e) => setNewClubForm({...newClubForm, id: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400" dir="ltr" /></div>
-                  <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_name}</label><input type="text" value={newClubForm.name} onChange={(e) => setNewClubForm({...newClubForm, name: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400" /></div>
-                  <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_lang}</label><select value={newClubForm.language} onChange={(e) => setNewClubForm({...newClubForm, language: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400"><option value="he">עברית</option><option value="en">English</option></select></div>
-                  <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_admin_name}</label><input type="text" value={newClubForm.adminName} onChange={(e) => setNewClubForm({...newClubForm, adminName: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400" /></div>
-                  <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_pass}</label><input type="text" value={newClubForm.password} onChange={(e) => setNewClubForm({...newClubForm, password: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400" dir="ltr" /></div>
-                  <div className="sm:col-span-2"><button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg h-[50px]">{dict.btn_create_club}</button></div>
-              </form>
-          </div>
-          <h3 className="text-xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">{dict.sa_active_clubs}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {allClubs.map(club => (
-                  <div key={club.clubId} className="bg-white/5 p-5 rounded-[20px] border border-white/10 hover:bg-white/10 flex flex-col gap-3">
-                      <div className="flex flex-wrap justify-between items-start gap-2"><h4 className="text-lg font-bold text-white">{club.displayName}</h4><button onClick={() => window.location.href = `/${club.clubId}`} className="flex-1 sm:flex-none bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2"><Settings size={16} /> {dict.btn_manage}</button></div>
-                      <div className="bg-[#0A0410]/50 p-3 rounded-xl border border-white/5 mt-1"><p className="text-[10px] text-[#A594BA] mb-1 uppercase tracking-wider font-bold">{dict.direct_link}</p><p className="text-sm text-emerald-400 font-mono select-all cursor-pointer" dir="ltr">{window.location.origin}/{club.clubId}</p></div>
-                  </div>
-              ))}
-          </div>
-      </div>
-  );
-
-  const renderHome = () => (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8 text-start" dir={dict.dir}>
-      <div className="text-center pt-8 pb-2 relative">
-        <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 theme-bg-secondary-20 rounded-full blur-[60px] z-0"></div>
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full theme-gradient-br mb-6 theme-glow-secondary-50 relative z-10"><Trophy size={40} className="text-white" /></div>
-        <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#A594BA] mb-2 relative z-10">{leagueConfig.displayName}</h1>
-        <p className="text-[#A594BA] relative z-10 font-medium tracking-wide">{dict.arena_subtitle}</p>
-      </div>
-      <div className="relative z-10 flex flex-col gap-4">
-        {myPlayer ? (
-          <div className="bg-white/10 backdrop-blur-xl p-5 rounded-[24px] border theme-border-primary-30 text-center theme-glow-primary-20">
-            <p className="text-[#A594BA] mb-2">{dict.hello}, <strong className="text-white">{myPlayer.name}</strong></p>
-            {myPlayer.isActive === false && <div className="bg-amber-500/10 text-amber-400 text-sm font-bold p-2 rounded-lg mt-2 mb-2 border border-amber-500/20">{dict.account_frozen}</div>}
-            <div className="flex gap-2 mt-4">
-              <button onClick={() => setView('ladder')} className="flex-1 theme-gradient-r text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 text-sm">{myPlayer.isActive === false ? dict.btn_view_ladder : dict.btn_to_ladder}</button>
-              <button onClick={togglePlayerStatus} className={`px-4 font-bold py-3 rounded-xl transition-colors flex items-center justify-center text-sm ${myPlayer.isActive === false ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 border border-white/10 text-[#A594BA]'}`}>{myPlayer.isActive === false ? <PlayCircle size={20} /> : <PauseCircle size={20} />}</button>
-              <button onClick={handleLogout} className="px-4 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 flex items-center justify-center"><LogOut size={20} /></button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <button onClick={() => setLoginModalOpen(true)} className="w-full bg-white/5 backdrop-blur-md border border-white/20 text-white font-black text-lg py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all shadow-lg"><LogIn size={22} /> {dict.btn_login}</button>
-            <button onClick={() => setView('join')} className="w-full theme-gradient-r text-white font-black text-lg py-4 rounded-2xl flex items-center justify-center gap-3 theme-glow-secondary-40 transition-all"><UserPlus size={22} /> {dict.btn_join}</button>
-          </>
-        )}
-      </div>
-      <div className="bg-white/5 backdrop-blur-xl rounded-[32px] p-7 border border-white/10 shadow-xl relative z-10 mt-6">
-        <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-4"><Info size={24} className="theme-text-primary"/><h2 className="text-xl font-black text-white">{dict.rules_title}</h2></div>
-        <ul className="space-y-4 text-sm text-[#A594BA]">
-          <li className="flex items-start gap-3"><span className="theme-bg-secondary w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">1</span><div><strong className="text-white">{dict.rule1_title}</strong> {dict.rule1_text}</div></li>
-          <li className="flex items-start gap-3"><span className="theme-bg-primary w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">2</span><div><strong className="text-white">{dict.rule2_title}</strong> {dict.rule2_text}</div></li>
-          <li className="flex items-start gap-3"><span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">3</span><div><strong className="text-white">{dict.rule3_title}</strong> {dict.rule3_text}</div></li>
-        </ul>
-        <button onClick={() => setShowRulesModal(true)} className="mt-5 w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">{dict.btn_full_rules}</button>
-        <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center"><p className="text-white font-bold mb-1">{dict.admin_name} {leagueConfig.adminName}</p><p className="text-[#A594BA] text-sm">{dict.admin_phone} <a href={`tel:${leagueConfig.adminPhone}`} className="theme-text-secondary" dir="ltr">{leagueConfig.adminPhone}</a></p></div>
-      </div>
-      {allClubs.length > 1 && (
-          <div className="mt-6 mb-8 pt-6 border-t border-white/10 text-center">
-              <p className="text-[#A594BA] text-xs uppercase tracking-widest font-bold mb-3 flex items-center justify-center gap-1"><Globe size={12} /> {dict.global_network}</p>
-              <div className="flex flex-wrap justify-center gap-2">{allClubs.filter(c => c.clubId !== currentClubId).map(club => (<a key={club.clubId} href={`/${club.clubId}`} className="text-xs bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/10">{club.displayName}</a>))}</div>
-          </div>
-      )}
-    </div>
-  );
 
   const themeStyles = `
       :root {
@@ -476,8 +375,6 @@ export default function App() {
       .theme-bg-secondary-hover:hover { background-color: rgba(var(--theme-secondary-rgb), 0.8); }
       .theme-border-primary { border-color: var(--theme-primary); }
       .theme-border-secondary { border-color: var(--theme-secondary); }
-      .theme-border-primary-30 { border-color: rgba(var(--theme-primary-rgb), 0.3); }
-      .theme-border-secondary-30 { border-color: rgba(var(--theme-secondary-rgb), 0.3); }
       .theme-gradient-r { background: linear-gradient(to right, var(--theme-primary), var(--theme-secondary)); }
       .theme-gradient-br { background: linear-gradient(to bottom right, var(--theme-primary), var(--theme-secondary)); }
       .theme-glow-primary-20 { box-shadow: 0 0 20px rgba(var(--theme-primary-rgb), 0.2); }
@@ -501,19 +398,62 @@ export default function App() {
         ${themeStyles}
       `}</style>
       <main className="max-w-xl mx-auto p-5 relative z-10">
-        {view === 'home' && renderHome()}
+        {view === 'home' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8 text-start">
+            <div className="text-center pt-8 pb-2 relative">
+              <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 theme-bg-secondary-20 rounded-full blur-[60px] z-0"></div>
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full theme-gradient-br mb-6 theme-glow-secondary-50 relative z-10"><Trophy size={40} className="text-white" /></div>
+              <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#A594BA] mb-2 relative z-10">{leagueConfig.displayName}</h1>
+              <p className="text-[#A594BA] relative z-10 font-medium tracking-wide">{dict.arena_subtitle}</p>
+            </div>
+            <div className="relative z-10 flex flex-col gap-4">
+              {myPlayer ? (
+                <div className="bg-white/10 backdrop-blur-xl p-5 rounded-[24px] border theme-border-primary-30 text-center theme-glow-primary-20">
+                  <p className="text-[#A594BA] mb-2">{dict.hello}, <strong className="text-white">{myPlayer.name}</strong></p>
+                  {myPlayer.isActive === false && <div className="bg-amber-500/10 text-amber-400 text-sm font-bold p-2 rounded-lg mt-2 mb-2 border border-amber-500/20">{dict.account_frozen}</div>}
+                  <div className="flex gap-2 mt-4">
+                    <button onClick={() => setView('ladder')} className="flex-1 theme-gradient-r text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 text-sm">{myPlayer.isActive === false ? dict.btn_view_ladder : dict.btn_to_ladder}</button>
+                    <button onClick={togglePlayerStatus} className={`px-4 font-bold py-3 rounded-xl transition-colors flex items-center justify-center text-sm ${myPlayer.isActive === false ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 border border-white/10 text-[#A594BA]'}`}>{myPlayer.isActive === false ? <PlayCircle size={20} /> : <PauseCircle size={20} />}</button>
+                    <button onClick={handleLogout} className="px-4 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 flex items-center justify-center"><LogOut size={20} /></button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button onClick={() => setLoginModalOpen(true)} className="w-full bg-white/5 backdrop-blur-md border border-white/20 text-white font-black text-lg py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all shadow-lg"><LogIn size={22} /> {dict.btn_login}</button>
+                  <button onClick={() => setView('join')} className="w-full theme-gradient-r text-white font-black text-lg py-4 rounded-2xl flex items-center justify-center gap-3 theme-glow-secondary-40 transition-all"><UserPlus size={22} /> {dict.btn_join}</button>
+                </>
+              )}
+            </div>
+            <div className="bg-white/5 backdrop-blur-xl rounded-[32px] p-7 border border-white/10 shadow-xl relative z-10 mt-6">
+              <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-4"><Info size={24} className="theme-text-primary"/><h2 className="text-xl font-black text-white">{dict.rules_title}</h2></div>
+              <ul className="space-y-4 text-sm text-[#A594BA]">
+                <li className="flex items-start gap-3"><span className="theme-bg-secondary w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">1</span><div><strong className="text-white">{dict.rule1_title}</strong> {dict.rule1_text}</div></li>
+                <li className="flex items-start gap-3"><span className="theme-bg-primary w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">2</span><div><strong className="text-white">{dict.rule2_title}</strong> {dict.rule2_text}</div></li>
+                <li className="flex items-start gap-3"><span className="bg-white/10 w-6 h-6 flex items-center justify-center rounded-full text-white font-bold shrink-0 text-xs mt-0.5">3</span><div><strong className="text-white">{dict.rule3_title}</strong> {dict.rule3_text}</div></li>
+              </ul>
+              <button onClick={() => setShowRulesModal(true)} className="mt-5 w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">{dict.btn_full_rules}</button>
+              <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center"><p className="text-white font-bold mb-1">{dict.admin_name} {leagueConfig.adminName}</p><p className="text-[#A594BA] text-sm">{dict.admin_phone} <a href={`tel:${leagueConfig.adminPhone}`} className="theme-text-secondary" dir="ltr">{leagueConfig.adminPhone}</a></p></div>
+            </div>
+            {allClubs.length > 1 && (
+                <div className="mt-6 mb-8 pt-6 border-t border-white/10 text-center">
+                    <p className="text-[#A594BA] text-xs uppercase tracking-widest font-bold mb-3 flex items-center justify-center gap-1"><Globe size={12} /> {dict.global_network}</p>
+                    <div className="flex flex-wrap justify-center gap-2">{allClubs.filter(c => c.clubId !== currentClubId).map(club => (<a key={club.clubId} href={`/${club.clubId}`} className="text-xs bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/10">{club.displayName}</a>))}</div>
+                </div>
+            )}
+          </div>
+        )}
         {view === 'join' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8 mt-6 text-start" dir={dict.dir}>
             <div className="bg-gradient-to-br from-[#0A0410]/90 to-[#1B0B2E]/90 backdrop-blur-xl p-7 rounded-[32px] shadow-2xl border theme-border-secondary-30 relative overflow-hidden">
               <h2 className="text-2xl font-black text-white mb-6">{dict.join_title}</h2>
               <form onSubmit={handleJoin} className="space-y-5 relative z-10">
                 <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_name}</label><input required type="text" name="name" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input focus:outline-none" placeholder={dict.f_name_ph} /></div>
-                <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_phone}</label><input required type="tel" name="phone" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input focus:outline-none" dir="ltr" /><p className="text-xs text-yellow-400/90 mt-2 font-bold leading-tight">{dict.f_phone_note}</p></div>
-                <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_email}</label><input required type="email" name="email" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input focus:outline-none" dir="ltr" /></div>
-                <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_id}</label><input required type="text" name="idNumber" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input focus:outline-none" dir="ltr" /></div>
+                <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_phone}</label><input required type="tel" name="phone" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input" dir="ltr" /><p className="text-xs text-yellow-400/90 mt-2 font-bold leading-tight">{dict.f_phone_note}</p></div>
+                <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_email}</label><input required type="email" name="email" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input" dir="ltr" /></div>
+                <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_id}</label><input required type="text" name="idNumber" className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input" dir="ltr" /></div>
                 <div><label className="block text-sm font-bold text-[#A594BA] mb-2">{dict.f_pin}</label><input required type="password" name="pin" pattern="\d{4}" maxLength={4} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl theme-input focus:outline-none text-center tracking-[0.5em]" placeholder="••••" dir="ltr" /></div>
                 <div className="pt-2 border-t border-white/10"><div className="flex items-start gap-3 mt-4"><input required type="checkbox" id="health" className="mt-1 w-4 h-4 theme-accent" /><label htmlFor="health" className="text-sm text-[#A594BA] leading-tight cursor-pointer">{dict.f_health}</label></div><div className="flex items-start gap-3 mt-4"><input required type="checkbox" id="rulesCheck" className="mt-1 w-4 h-4 theme-accent" /><label htmlFor="rulesCheck" className="text-sm text-[#A594BA] leading-tight cursor-pointer" onClick={() => setShowRulesModal(true)}>{dict.f_rules}</label></div></div>
-                <button type="submit" disabled={isSubmittingJoin} className="w-full theme-gradient-r text-white font-black text-lg py-4 rounded-full transition-all active:scale-95 mt-4 disabled:opacity-50">{isSubmittingJoin ? dict.btn_joining : dict.btn_submit_join}</button>
+                <button type="submit" disabled={isSubmittingJoin} className="w-full theme-gradient-r text-white font-black text-lg py-4 rounded-full active:scale-95 mt-4 disabled:opacity-50">{isSubmittingJoin ? dict.btn_joining : dict.btn_submit_join}</button>
                 <button type="button" onClick={() => setView('home')} className="w-full mt-3 text-[#A594BA] hover:text-white transition-colors py-2 text-sm font-bold">{dict.btn_cancel}</button>
               </form>
             </div>
@@ -526,7 +466,7 @@ export default function App() {
               <div key={player.id} onClick={() => setStatsModalPlayer(player)} className={`flex items-center justify-between p-4 rounded-[24px] border transition-all ${myPlayer?.id === player.id ? 'theme-bg-primary-10 theme-border-secondary' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                 <div className="flex items-center gap-3 text-start"><div className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-lg shrink-0 ${player.rank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600' : 'bg-white/10'}`}>{player.rank}</div><div className="flex flex-col"><h3 className="font-bold text-white tracking-wide">{player.name} {myPlayer?.id === player.id && <span className="theme-text-secondary text-xs ms-1">{dict.you}</span>}</h3><span className="text-[#A594BA] text-[11px] sm:text-xs flex items-center gap-1 mt-0.5"><BarChart2 size={12}/> {dict.click_stats}</span></div></div>
                 <div className="flex flex-col gap-2 shrink-0">
-                  {myPlayer && myPlayer.isActive !== false && myPlayer.id !== player.id && player.rank < myPlayer.rank && (myPlayer.rank - player.rank) <= 3 && (<button onClick={(e) => openWhatsApp(player.phone, myPlayer.name, e)} className="theme-gradient-r text-white px-5 py-2 rounded-full text-sm font-black active:scale-95 transition-all"><Zap size={16} fill="currentColor" /> {dict.btn_challenge}</button>)}
+                  {myPlayer && myPlayer.isActive !== false && myPlayer.id !== player.id && player.rank < myPlayer.rank && (myPlayer.rank - player.rank) <= 3 && (<button onClick={(e) => openWhatsApp(player.phone, myPlayer.name, e)} className="theme-gradient-r text-white px-5 py-2 rounded-full text-sm font-black active:scale-95"><Zap size={16} fill="currentColor" /> {dict.btn_challenge}</button>)}
                   {myPlayer && myPlayer.id !== player.id && myPlayer.isActive !== false && Math.abs(myPlayer.rank - player.rank) <= 3 && (<button onClick={(e) => { e.stopPropagation(); setMatchModal({ isOpen: true, opponent: player }); }} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold transition-all border border-white/20 active:scale-95">{dict.btn_victory}</button>)}
                 </div>
               </div>
@@ -551,17 +491,85 @@ export default function App() {
             </div>
           </div>
         )}
-        {view === 'admin' && renderAdmin()}
+        {view === 'admin' && (
+          <div className="space-y-6 pb-8 animate-in fade-in duration-300 text-start" dir={dict.dir}>
+            {isSuperAdmin ? (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-indigo-900 to-purple-900 p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-indigo-500/30">
+                  <Globe size={48} className="text-white/20 absolute -end-4 -bottom-4 w-32 h-32" />
+                  <h2 className="text-3xl font-black text-white relative z-10">{dict.sa_title}</h2>
+                  <p className="text-indigo-200 relative z-10">{dict.sa_subtitle}</p>
+                </div>
+                <div className="bg-white/5 p-6 rounded-[24px] border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-4"><Plus className="text-emerald-400" /> {dict.sa_new_club}</h3>
+                  <form onSubmit={handleCreateClub} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_id}</label><input type="text" value={newClubForm.id} onChange={(e) => setNewClubForm({...newClubForm, id: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none" dir="ltr" /></div>
+                    <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_name}</label><input type="text" value={newClubForm.name} onChange={(e) => setNewClubForm({...newClubForm, name: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none" /></div>
+                    <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_lang}</label><select value={newClubForm.language} onChange={(e) => setNewClubForm({...newClubForm, language: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white"><option value="he">עברית</option><option value="en">English</option></select></div>
+                    <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_admin_name}</label><input type="text" value={newClubForm.adminName} onChange={(e) => setNewClubForm({...newClubForm, adminName: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none" /></div>
+                    <div><label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_pass}</label><input type="text" value={newClubForm.password} onChange={(e) => setNewClubForm({...newClubForm, password: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none" dir="ltr" /></div>
+                    <div className="sm:col-span-2"><button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg h-[50px]">{dict.btn_create_club}</button></div>
+                  </form>
+                </div>
+                <h3 className="text-xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">{dict.sa_active_clubs}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {allClubs.map(club => (
+                    <div key={club.clubId} className="bg-white/5 p-5 rounded-[20px] border border-white/10 flex flex-col gap-3">
+                      <div className="flex flex-wrap justify-between items-start gap-2"><h4 className="text-lg font-bold text-white">{club.displayName}</h4><button onClick={() => window.location.href = `/${club.clubId}`} className="flex-1 sm:flex-none bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2"><Settings size={16} /> {dict.btn_manage}</button></div>
+                      <div className="bg-[#0A0410]/50 p-3 rounded-xl border border-white/5 mt-1"><p className="text-[10px] text-[#A594BA] mb-1 font-bold">{dict.direct_link}</p><p className="text-sm text-emerald-400 font-mono select-all cursor-pointer" dir="ltr">{window.location.origin}/{club.clubId}</p></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : !isAdmin ? (
+              <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/10 max-w-md mx-auto mt-10 text-center relative overflow-hidden animate-in fade-in" dir={dict.dir}>
+                <div className="absolute top-0 end-0 w-full h-1 bg-gradient-to-r from-[#FF0055] to-white"></div>
+                <ShieldCheck size={56} className="text-[#FF0055] mx-auto mb-4" />
+                <h2 className="text-2xl font-black text-white mb-2">{dict.admin_login_title}</h2>
+                <p className="text-[#A594BA] text-sm mb-6">{dict.admin_protected} <strong className="text-white">{leagueConfig.displayName}</strong></p>
+                <form onSubmit={handleAdminLogin} className="space-y-4 mt-6">
+                  <input type="text" value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} placeholder={dict.f_user} className="w-full px-5 py-4 bg-[#0A0410]/50 border border-white/10 rounded-2xl text-center text-white focus:outline-none" dir="ltr" />
+                  <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder={dict.f_pass} className="w-full px-5 py-4 bg-[#0A0410]/50 border border-white/10 rounded-2xl text-center text-white tracking-[0.3em]" dir="ltr" />
+                  {adminLoginError && <div className="text-[#FF0055] text-sm font-bold bg-[#FF0055]/10 p-2 rounded-lg">{dict.login_err}</div>}
+                  <button type="submit" className="w-full bg-[#FF0055]/10 hover:bg-[#FF0055]/20 text-[#FF0055] border border-[#FF0055]/50 font-black py-4 rounded-full active:scale-95 mt-2">{dict.btn_admin_login}</button>
+                  <button type="button" onClick={() => alert("Contact Super Admin for password recovery.")} className="w-full text-[#A594BA] text-sm py-2 hover:text-white transition-colors mt-2">{dict.forgot_admin}</button>
+                </form>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10 relative">
+                  <div className="flex flex-wrap justify-between items-center mb-6 border-b border-white/10 pb-4 gap-4">
+                     <h2 className="text-xl font-black text-white flex items-center gap-2"><ShieldCheck className="text-[#FF0055]" /> {dict.manage_players}</h2>
+                     <div className="flex gap-3 w-full sm:w-auto">
+                         <button onClick={exportPlayersToCSV} className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 rounded-full font-bold text-sm bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white"><Download size={16} /> {dict.btn_export}</button>
+                         <button onClick={saveAdminEdits} disabled={Object.keys(adminEdits).length === 0} className={`flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all ${Object.keys(adminEdits).length > 0 ? 'bg-[#FF0055] text-white' : 'bg-white/10 text-white/30'}`}><Save size={16} /> {dict.btn_save}</button>
+                     </div>
+                  </div>
+                  <div className="overflow-x-auto"><table className="w-full text-start"><thead><tr className="text-[#A594BA] text-sm border-b border-white/10"><th className="p-3 font-medium text-center">{dict.t_info}</th><th className="p-3 font-medium text-start">{dict.t_rank}</th><th className="p-3 font-medium text-start">{dict.t_name}</th><th className="p-3 font-medium text-center">{dict.t_actions}</th></tr></thead><tbody>{players.map(player => (
+                    <tr key={player.id} className={`border-b border-white/5 ${adminEdits[player.id] ? 'bg-[#FF0055]/10' : ''}`}>
+                      <td className="p-2 text-center"><button onClick={() => setAdminSelectedPlayer(player)} className="text-[#A594BA] hover:text-white"><Eye size={18} /></button></td>
+                      <td className="p-2 flex flex-col gap-1 items-start"><input type="number" value={adminEdits[player.id]?.rank ?? player.rank} onChange={(e) => handleAdminEditChange(player.id, 'rank', e.target.value)} className="w-16 px-2 py-1 bg-[#0A0410]/50 border border-white/10 rounded-lg text-center text-white" /><label className="text-[10px] text-[#A594BA]"><input type="checkbox" checked={adminEdits[player.id]?.isActive ?? player.isActive} onChange={(e) => handleAdminEditChange(player.id, 'isActive', e.target.checked)} className="accent-emerald-500" /> {dict.active_checkbox}</label></td>
+                      <td className="p-2 text-start"><input type="text" value={adminEdits[player.id]?.name ?? player.name} onChange={(e) => handleAdminEditChange(player.id, 'name', e.target.value)} className="w-full px-3 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" /></td>
+                      <td className="p-2 text-center"><button onClick={() => { if(window.confirm('Delete?')) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, player.id)); }} className="text-[#FF0055] bg-[#FF0055]/10 p-2 rounded-full"><Trash2 size={16}/></button></td>
+                    </tr>
+                  ))}</tbody></table></div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </main>
+
       {loginModalOpen && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setLoginModalOpen(false)}>
           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
             <button onClick={() => setLoginModalOpen(false)} className="absolute top-4 start-4 text-[#A594BA]">✕</button>
             <h3 className="text-2xl font-black text-center text-white mb-6">{dict.btn_login}</h3>
-            <form onSubmit={handleLogin}><input required type="tel" name="phone" placeholder={dict.f_phone} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-3" dir="ltr" /><input required type="password" name="pin" placeholder={dict.f_pin_ph} maxLength={4} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-4 text-center tracking-[0.5em]" dir="ltr" /><button type="submit" className="w-full theme-gradient-r text-white font-black py-4 rounded-full active:scale-95 mb-2">{dict.btn_login}</button><button type="button" onClick={() => { setForgotPasswordOpen(true); }} className="w-full text-[#A594BA] text-sm py-2">{dict.forgot_pin_title}</button></form>
+            <form onSubmit={handleLogin}><input required type="tel" name="phone" placeholder={dict.f_phone} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-3" dir="ltr" /><input required type="password" name="pin" placeholder={dict.f_pin_ph} maxLength={4} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-4 text-center tracking-[0.5em]" dir="ltr" /><button type="submit" className="w-full theme-gradient-r text-white font-black py-4 rounded-full active:scale-95 mb-2">{dict.btn_login}</button></form>
           </div>
         </div>
       )}
+
       {statsModalPlayer && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setStatsModalPlayer(null)}>
           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
@@ -572,25 +580,33 @@ export default function App() {
           </div>
         </div>
       )}
+
       {adminSelectedPlayer && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setAdminSelectedPlayer(null)}>
           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full text-start" onClick={e => e.stopPropagation()} dir={dict.dir}>
             <h3 className="text-xl font-black text-white mb-6 border-b border-white/10 pb-4">{dict.player_details}</h3>
-            <div className="space-y-3"><div><span className="text-[#A594BA] text-xs">{dict.p_name}</span><div>{adminSelectedPlayer.name}</div></div><div><span className="text-[#A594BA] text-xs">{dict.p_phone}</span><div dir="ltr">{adminSelectedPlayer.phone}</div></div><div><span className="text-[#A594BA] text-xs">{dict.p_email}</span><div dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || '-'}</div></div><div><span className="text-[#A594BA] text-xs">PIN</span><div dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.pin || '-'}</div></div></div>
+            <div className="space-y-3"><div><span className="text-[#A594BA] text-xs">{dict.p_name}</span><div className="text-white font-bold">{adminSelectedPlayer.name}</div></div><div><span className="text-[#A594BA] text-xs">{dict.p_phone}</span><div className="text-white" dir="ltr">{adminSelectedPlayer.phone}</div></div><div><span className="text-[#A594BA] text-xs">{dict.p_email}</span><div className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || '-'}</div></div><div><span className="text-[#A594BA] text-xs">ID Number</span><div className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.idNumber || '-'}</div></div><div><span className="text-[#A594BA] text-xs">PIN Code</span><div className="text-white font-mono">{adminPrivateData[adminSelectedPlayer.id]?.pin || '-'}</div></div></div>
             <button onClick={() => setAdminSelectedPlayer(null)} className="w-full mt-6 bg-white/10 py-3 rounded-full">{dict.close}</button>
           </div>
         </div>
       )}
-      {view !== 'join' && (
-        <nav className="fixed bottom-0 start-0 end-0 bg-[#0A0410]/90 backdrop-blur-xl border-t border-white/10 z-20 pb-safe">
-          <div className="max-w-xl mx-auto flex justify-around p-3">
-            <button onClick={() => setView('home')} className={`flex flex-col items-center p-2 ${view === 'home' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><Home size={24}/><span className="text-[10px]">{dict.nav_home}</span></button>
-            <button onClick={() => setView('ladder')} className={`flex flex-col items-center p-2 ${view === 'ladder' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><List size={24}/><span className="text-[10px]">{dict.nav_ladder}</span></button>
-            <button onClick={() => setView('history')} className={`flex flex-col items-center p-2 ${view === 'history' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><RefreshCw size={24}/><span className="text-[10px]">{dict.nav_history}</span></button>
-            <button onClick={() => setView('admin')} className={`flex flex-col items-center p-2 ${view === 'admin' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><ShieldCheck size={24}/><span className="text-[10px]">{dict.nav_admin}</span></button>
-          </div>
-        </nav>
+
+      {showRulesModal && (
+        <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in" onClick={() => setShowRulesModal(false)}>
+           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-6 max-w-md w-full shadow-2xl relative max-h-[80vh] overflow-y-auto text-start" onClick={e => e.stopPropagation()} dir={dict.dir}>
+               <h3 className="text-2xl font-black text-white mb-4 border-b border-white/10 pb-4">{dict.rules_modal_title}</h3>
+               <div className="text-[#A594BA] space-y-4 text-sm leading-relaxed">
+                   <p>{dict.rules_welcome}</p>
+                   <h4 className="text-white font-bold">{dict.privacy_title}</h4><p>{dict.privacy_text}</p>
+                   <h4 className="text-white font-bold">{dict.detailed_rules_title}</h4><ul className="list-disc ps-5 space-y-2"><li>{dict.dr_1}</li><li>{dict.dr_2}</li><li>{dict.dr_3}</li><li>{dict.dr_4}</li><li>{dict.dr_5}</li><li>{dict.dr_6}</li><li>{dict.dr_7}</li></ul>
+                   <h4 className="text-white font-bold">{dict.health_title}</h4><p>{dict.health_text}</p>
+                   <h4 className="text-white font-bold">{dict.guide_title}</h4><ul className="list-disc ps-5 space-y-2"><li><strong>{dict.guide_login.split(':')[0]}:</strong> {dict.guide_login.split(':')[1]}</li><li><strong>{dict.guide_challenge.split(':')[0]}:</strong> {dict.guide_challenge.split(':')[1]}</li><li><strong>{dict.guide_report.split(':')[0]}:</strong> {dict.guide_report.split(':')[1]}</li><li><strong>{dict.guide_stats.split(':')[0]}:</strong> {dict.guide_stats.split(':')[1]}</li></ul>
+               </div>
+               <button onClick={() => setShowRulesModal(false)} className="w-full mt-6 theme-bg-secondary text-white font-bold py-3 rounded-full">{dict.close}</button>
+           </div>
+        </div>
       )}
+
       {matchModal.isOpen && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full text-center">
@@ -600,6 +616,15 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <nav className="fixed bottom-0 start-0 end-0 bg-[#0A0410]/90 backdrop-blur-xl border-t border-white/10 z-20 pb-safe">
+        <div className="max-w-xl mx-auto flex justify-around p-3">
+          <button onClick={() => setView('home')} className={`flex flex-col items-center p-2 ${view === 'home' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><Home size={24}/><span className="text-[10px]">{dict.nav_home}</span></button>
+          <button onClick={() => setView('ladder')} className={`flex flex-col items-center p-2 ${view === 'ladder' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><List size={24}/><span className="text-[10px]">{dict.nav_ladder}</span></button>
+          <button onClick={() => setView('history')} className={`flex flex-col items-center p-2 ${view === 'history' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><RefreshCw size={24}/><span className="text-[10px]">{dict.nav_history}</span></button>
+          <button onClick={() => setView('admin')} className={`flex flex-col items-center p-2 ${view === 'admin' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><ShieldCheck size={24}/><span className="text-[10px]">{dict.nav_admin}</span></button>
+        </div>
+      </nav>
     </div>
   );
 }
