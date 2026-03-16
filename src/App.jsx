@@ -4,6 +4,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken }
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, getDocs, getDoc } from 'firebase/firestore';
 import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download, PauseCircle, PlayCircle, ExternalLink } from 'lucide-react';
 
+// --- Firebase Initialization ---
 const fallbackConfig = {
   apiKey: "AIzaSyD1utJy-vxBJy8g-C6TM2iFbRmA9I5B5vw", 
   authDomain: "haifasquash-ladder.firebaseapp.com",
@@ -19,6 +20,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'haifasquash-ladder';
 
+// --- Translations Dictionary ---
 const translations = {
   he: {
     dir: 'rtl', nav_home: "בית", nav_ladder: "סולם", nav_history: "היסטוריה", nav_admin: "אדמין",
@@ -31,7 +33,7 @@ const translations = {
     btn_full_rules: "תקנון ומדריך מלא", admin_name: "מנהל:", admin_phone: "טלפון:",
     whatsapp_group: "קהילת וואטסאפ", ladder_preview: "הצצה לדירוג", no_active_players: "אין שחקנים.",
     show_all_ladder: "הצג הכל", global_network: "רשת הליגות", join_title: "הרשמה לליגה",
-    f_name: "שם מלא", f_name_ph: "שם משפחה ופרטי", f_phone: "וואטסאפ", f_phone_note: "* וודאו דיוק לתיאום משחקים.",
+    f_name: "שם מלא", f_name_ph: "שם משפחה ופרטי", f_phone: "מספר וואטסאפ", f_phone_note: "* וודאו דיוק לתיאום משחקים.",
     f_email: "אימייל", f_id: "ת.ז", f_pin: "PIN (4 ספרות)", f_pin_ph: "••••", f_pin_note: "* לשימוש בכניסות הבאות.",
     f_health: "אני כשיר לפעילות ספורטיבית.", f_rules: "אני מסכים לתקנון הליגה.", btn_submit_join: "הכנס אותי!",
     btn_joining: "נרשם...", btn_cancel: "ביטול", ladder_title: "סולם הדירוג", login_required: "* התחבר לביצוע פעולות",
@@ -46,14 +48,16 @@ const translations = {
     s_admin: "מנהל", s_admin_pass: "סיסמת מנהל", s_phone: "טלפון", s_wa: "וואטסאפ", btn_save_settings: "שמור",
     btn_reset_league: "איפוס", sa_title: "סופר אדמין", sa_subtitle: "ניהול רשת הליגות", sa_new_club: "הקמת מועדון",
     f_club_id: "מזהה אנגלית", f_club_name: "שם תצוגה", f_club_lang: "שפה", f_club_pass: "סיסמת ניהול",
-    f_club_admin_name: "שם מנהל", btn_create_club: "צור מועדון", sa_active_clubs: "מועדונים ברשת",
+    f_club_admin_name: "שם מנהל המועדון", btn_create_club: "צור מועדון", sa_active_clubs: "מועדונים ברשת",
     btn_manage: "נהל", btn_reset_pwd: "PIN", direct_link: "לינק:", stats_rank: "דירוג", stats_frozen: "מוקפא",
     stats_matches: "משחקים", stats_winrate: "הצלחה", stats_wins: "נצ'", stats_losses: "הפס'", h2h_title: "ראש בראש",
     h2h_my_wins: "שלך", h2h_opp_wins: "שלו/ה", player_details: "פרטי שחקן", p_frozen: "מוקפא", p_name: "שם",
     p_phone: "וואטסאפ", p_email: "אימייל", p_id: "ת.ז", p_health: "בריאות", p_rules: "תקנון", close: "סגור",
-    rules_modal_title: "תקנון הליגה", forgot_pin_title: "שכחת PIN?", forgot_pin_sub: "שחזור מול המנהל בלבד.",
-    btn_check_details: "בדיקה", reset_modal_title: "אזהרה!", reset_modal_sub: "מחיקה לצמיתות.", 
-    reset_modal_confirm: "מאשר מחיקה ל-", btn_delete_all: "מחק הכל"
+    rules_welcome: "ברוכים הבאים! בהרשמתכם אתם מסכימים לתנאים הבאים:",
+    privacy_title: "1. פרטיות", privacy_text: "הטלפון יהיה גלוי לשאר השחקנים לתיאום משחקים בלבד.",
+    detailed_rules_title: "2. חוקי המשחק", dr_1: "דירוג בשיטת סולם.", dr_2: "אתגר עד 3 שלבים מעליך.", dr_3: "משחק בשיטת הטוב מ-5.", dr_4: "תיאום משחק תוך 7 ימים.", dr_5: "מנצח מזין תוצאה.", dr_6: "מנצח תופס את מקום המפסיד.", dr_7: "דיווח שקרי גורר הרחקה.",
+    health_title: "3. הצהרת בריאות", health_text: "השחקן כשיר לספורט. ההנהלה אינה אחראית לנזק גופני.",
+    guide_title: "4. מדריך טכני", guide_login: "כניסה: עם טלפון וקוד PIN.", guide_challenge: "אתגר: לחץ 'צ'אלנג' לוואטסאפ.", guide_report: "דיווח: המנצח לוחץ 'ניצחון'.", guide_stats: "סטטיסטיקה: לחץ על שחקן לראות ביצועים."
   },
   en: {
     dir: 'ltr', nav_home: "Home", nav_ladder: "Ladder", nav_history: "History", nav_admin: "Admin",
@@ -112,7 +116,6 @@ export default function App() {
   const [localUserId, setLocalUserId] = useState(localStorage.getItem(`squash_user_id_${currentClubId}`) || null);
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]); 
-  const [adminPrivateData, setAdminPrivateData] = useState({});
   
   const [leagueConfig, setLeagueConfig] = useState({ 
       displayName: "סקווש חיפה", language: "he", adminName: "ניצן מורה", 
@@ -148,7 +151,6 @@ export default function App() {
   const [adminLoginError, setAdminLoginError] = useState(false);
 
   const pPath = currentClubId === 'haifa' ? 'players' : `players_${currentClubId}`;
-  const privPath = currentClubId === 'haifa' ? 'private' : `private_${currentClubId}`;
   const mPath = currentClubId === 'haifa' ? 'matches' : `matches_${currentClubId}`;
   const cPath = currentClubId === 'haifa' ? 'config' : `config_${currentClubId}`;
 
@@ -205,18 +207,6 @@ export default function App() {
     return () => { unsubscribePlayers(); unsubscribeMatches(); unsubscribeConfig(); unsubscribeGlobalClubs(); };
   }, [user, currentClubId, pPath, mPath, cPath]);
 
-  useEffect(() => {
-    if (isAdmin) {
-        const fetchPrivateData = async () => {
-            const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', privPath));
-            const data = {};
-            snap.forEach(d => { data[d.id] = d.data(); });
-            setAdminPrivateData(data);
-        };
-        fetchPrivateData();
-    }
-  }, [isAdmin, privPath]);
-
   const activePlayers = players.filter(p => p.isActive !== false);
   const cleanPhone = (p) => p.replace(/\D/g, '');
 
@@ -228,22 +218,31 @@ export default function App() {
     return { total: playerMatches.length, wins, losses, winPercent };
   };
 
-  const handleLogin = async (e) => {
+  const exportPlayersToCSV = () => {
+    const headers = [dict.stats_rank, dict.t_name, 'Phone', 'Email', 'ID', 'PIN', 'Status', 'Joined'];
+    const rows = players.map(p => [p.isActive === false ? 'Frozen' : p.rank, p.name, p.phone, p.email || '', p.idNumber || '', p.pin || '', p.isActive === false ? 'Frozen' : 'Active', p.joinedAt ? new Date(p.joinedAt).toLocaleDateString() : '']);
+    const csvContent = [headers.join(','), ...rows.map(e => e.map(field => `"${field}"`).join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `players_${currentClubId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleLogin = (e) => {
     e.preventDefault();
     const inputPhone = cleanPhone(e.target.phone.value);
     const inputPin = e.target.pin.value;
-    const foundPublic = players.find(p => cleanPhone(p.phone) === inputPhone);
-    if (foundPublic) {
-        try {
-            const privateDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, foundPublic.id));
-            const actualPin = privateDoc.exists() ? privateDoc.data().pin : foundPublic.pin;
-            if (actualPin === inputPin) {
-                localStorage.setItem(`squash_user_id_${currentClubId}`, foundPublic.id);
-                setLocalUserId(foundPublic.id); setLoginModalOpen(false); setView('ladder'); return;
-            }
-        } catch (err) { console.error(err); }
+    const found = players.find(p => cleanPhone(p.phone) === inputPhone && p.pin === inputPin);
+    if (found) {
+      localStorage.setItem(`squash_user_id_${currentClubId}`, found.id);
+      setLocalUserId(found.id); setLoginModalOpen(false); setView('ladder');
+    } else {
+      alert(lang === 'he' ? "פרטים שגויים." : "Invalid PIN.");
     }
-    alert(lang === 'he' ? "פרטים שגויים." : "Invalid PIN.");
   };
 
   const handleJoin = async (e) => {
@@ -256,10 +255,7 @@ export default function App() {
     setIsSubmittingJoin(true);
     try {
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, user.uid), {
-        name: e.target.name.value, phone, rank: activePlayers.length + 1, isActive: true, joinedAt: new Date().toISOString()
-      });
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, user.uid), {
-        email: e.target.email.value, idNumber: e.target.idNumber.value, pin, healthDeclaration: e.target.health.checked, rulesAgreed: e.target.rulesCheck.checked
+        name: e.target.name.value, phone, email: e.target.email.value, idNumber: e.target.idNumber.value, pin, healthDeclaration: e.target.health.checked, rulesAgreed: e.target.rulesCheck.checked, rank: activePlayers.length + 1, isActive: true, joinedAt: new Date().toISOString()
       });
       localStorage.setItem(`squash_user_id_${currentClubId}`, user.uid);
       setLocalUserId(user.uid); setView('ladder');
@@ -303,6 +299,15 @@ export default function App() {
     e.preventDefault();
     if (adminUsername === 'superadmin' && adminPassword === 'master2026') { setIsSuperAdmin(true); setAdminLoginError(false); return; }
     if (adminUsername === 'admin' && adminPassword === (leagueConfig.adminPassword || 'squash2026')) { setIsAdmin(true); setAdminLoginError(false); setAdminConfigEdit({ ...leagueConfig }); } else { setAdminLoginError(true); }
+  };
+
+  const handleAdminEditChange = (id, field, value) => { setAdminEdits(prev => ({ ...prev, [id]: { ...(prev[id] || players.find(p => p.id === id)), [field]: value } })); };
+
+  const saveAdminEdits = async () => {
+    const updates = Object.keys(adminEdits).map(id => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, id), { name: adminEdits[id].name, rank: parseInt(adminEdits[id].rank, 10), isActive: adminEdits[id].isActive !== false }));
+    await Promise.all(updates);
+    setAdminEdits({});
+    alert(lang === 'he' ? "נשמר!" : "Saved!");
   };
 
   const handleCreateClub = async (e) => {
@@ -380,6 +385,12 @@ export default function App() {
               <button onClick={() => setShowRulesModal(true)} className="mt-5 w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">{dict.btn_full_rules}</button>
               <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center"><p className="text-white font-bold mb-1">{dict.admin_name} {leagueConfig.adminName}</p><p className="text-[#A594BA] text-sm">{dict.admin_phone} <a href={`tel:${leagueConfig.adminPhone}`} className="theme-text-secondary" dir="ltr">{leagueConfig.adminPhone}</a></p></div>
             </div>
+            {allClubs.length > 1 && (
+                <div className="mt-6 mb-8 pt-6 border-t border-white/10 text-center">
+                    <p className="text-[#A594BA] text-xs uppercase tracking-widest font-bold mb-3 flex items-center justify-center gap-1"><Globe size={12} /> {dict.global_network}</p>
+                    <div className="flex flex-wrap justify-center gap-2">{allClubs.filter(c => c.clubId !== currentClubId).map(club => (<a key={club.clubId} href={`/${club.clubId}`} className="text-xs bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/10">{club.displayName}</a>))}</div>
+                </div>
+            )}
           </div>
         )}
         {view === 'join' && (
@@ -487,7 +498,7 @@ export default function App() {
                       <td className="p-2 text-center"><button onClick={() => setAdminSelectedPlayer(player)} className="text-[#A594BA] hover:text-white"><Eye size={18} /></button></td>
                       <td className="p-2 flex flex-col gap-1 items-start"><input type="number" value={adminEdits[player.id]?.rank ?? player.rank} onChange={(e) => handleAdminEditChange(player.id, 'rank', e.target.value)} className="w-16 px-2 py-1 bg-[#0A0410]/50 border border-white/10 rounded-lg text-center text-white" /><label className="text-[8px] text-[#A594BA]"><input type="checkbox" checked={adminEdits[player.id]?.isActive ?? player.isActive} onChange={(e) => handleAdminEditChange(player.id, 'isActive', e.target.checked)} className="accent-emerald-500" /> {dict.active_checkbox}</label></td>
                       <td className="p-2 text-start"><input type="text" value={adminEdits[player.id]?.name ?? player.name} onChange={(e) => handleAdminEditChange(player.id, 'name', e.target.value)} className="w-full px-3 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" /></td>
-                      <td className="p-2 text-center"><button onClick={() => { if(window.confirm('Delete?')) { deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, player.id)); deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, player.id)); } }} className="text-[#FF0055] p-2"><Trash2 size={16}/></button></td>
+                      <td className="p-2 text-center"><button onClick={() => { if(window.confirm('Delete?')) { deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, player.id)); } }} className="text-[#FF0055] p-2"><Trash2 size={16}/></button></td>
                     </tr>
                   ))}</tbody></table></div>
                 </div>
@@ -502,7 +513,7 @@ export default function App() {
           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
             <button onClick={() => setLoginModalOpen(false)} className="absolute top-4 start-4 text-[#A594BA]">✕</button>
             <h3 className="text-2xl font-black text-center text-white mb-6">{dict.btn_login}</h3>
-            <form onSubmit={handleLogin}><input required type="tel" name="phone" placeholder={dict.f_phone} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-3" dir="ltr" /><input required type="password" name="pin" placeholder={dict.f_pin_ph} maxLength={4} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-4 text-center tracking-[0.5em]" dir="ltr" /><button type="submit" className="w-full theme-gradient-r text-white font-black py-4 rounded-full active:scale-95">{dict.btn_login}</button></form>
+            <form onSubmit={handleLogin}><input required type="tel" name="phone" placeholder={dict.f_phone} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-3" dir="ltr" /><input required type="password" name="pin" placeholder={dict.f_pin_ph} maxLength={4} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-4 text-center tracking-[0.5em]" dir="ltr" /><button type="submit" className="w-full theme-gradient-r text-white font-black py-4 rounded-full active:scale-95 mb-2">{dict.btn_login}</button></form>
           </div>
         </div>
       )}
@@ -523,6 +534,32 @@ export default function App() {
         </div>
       )}
 
+      {showRulesModal && (
+        <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in" onClick={() => setShowRulesModal(false)}>
+           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-6 max-w-md w-full shadow-2xl relative max-h-[80vh] overflow-y-auto text-start" onClick={e => e.stopPropagation()} dir={dict.dir}>
+               <h3 className="text-2xl font-black text-white mb-4 border-b border-white/10 pb-4">{dict.rules_modal_title}</h3>
+               <div className="text-[#A594BA] space-y-4 text-sm leading-relaxed">
+                   <p>{dict.rules_welcome}</p>
+                   <h4 className="text-white font-bold">{dict.privacy_title}</h4><p>{dict.privacy_text}</p>
+                   <h4 className="text-white font-bold">{dict.detailed_rules_title}</h4><ul className="list-disc ps-5 space-y-2"><li>{dict.dr_1}</li><li>{dict.dr_2}</li><li>{dict.dr_3}</li><li>{dict.dr_4}</li><li>{dict.dr_5}</li><li>{dict.dr_6}</li><li>{dict.dr_7}</li></ul>
+                   <h4 className="text-white font-bold">{dict.health_title}</h4><p>{dict.health_text}</p>
+                   <h4 className="text-white font-bold">{dict.guide_title}</h4><ul className="list-disc ps-5 space-y-2"><li><strong>{dict.guide_login.split(':')[0]}:</strong> {dict.guide_login.split(':')[1]}</li><li><strong>{dict.guide_challenge.split(':')[0]}:</strong> {dict.guide_challenge.split(':')[1]}</li><li><strong>{dict.guide_report.split(':')[0]}:</strong> {dict.guide_report.split(':')[1]}</li><li><strong>{dict.guide_stats.split(':')[0]}:</strong> {dict.guide_stats.split(':')[1]}</li></ul>
+               </div>
+               <button onClick={() => setShowRulesModal(false)} className="w-full mt-6 theme-bg-secondary text-white font-bold py-3 rounded-full">{dict.close}</button>
+           </div>
+        </div>
+      )}
+
+      {matchModal.isOpen && (
+        <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full text-center">
+            <h3 className="text-2xl font-black text-white mb-4">{dict.confirm_win_title}</h3>
+            <p className="text-[#A594BA] mb-8">{dict.confirm_win_text} <strong className="text-white">{matchModal.opponent?.name}</strong>?</p>
+            <div className="flex gap-4"><button onClick={() => setMatchModal({ isOpen: false, opponent: null })} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-full">{dict.cancel}</button><button onClick={() => submitMatchResult(localUserId, matchModal.opponent.id)} className="flex-1 py-4 theme-gradient-r text-white font-black rounded-full active:scale-95">{dict.btn_confirm}</button></div>
+          </div>
+        </div>
+      )}
+
       <nav className="fixed bottom-0 start-0 end-0 bg-[#0A0410]/90 backdrop-blur-xl border-t border-white/10 z-20 pb-safe">
         <div className="max-w-xl mx-auto flex justify-around p-3">
           <button onClick={() => setView('home')} className={`flex flex-col items-center p-2 ${view === 'home' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><Home size={24}/><span className="text-[10px]">{dict.nav_home}</span></button>
@@ -531,15 +568,6 @@ export default function App() {
           <button onClick={() => setView('admin')} className={`flex flex-col items-center p-2 ${view === 'admin' ? 'theme-text-secondary' : 'text-[#A594BA]'}`}><ShieldCheck size={24}/><span className="text-[10px]">{dict.nav_admin}</span></button>
         </div>
       </nav>
-      {matchModal.isOpen && (
-        <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full text-center">
-            <h3 className="text-2xl font-black text-white mb-4">{dict.confirm_win_title}</h3>
-            <p className="text-[#A594BA] mb-8">{dict.confirm_win_text} <strong className="text-white">{matchModal.opponent?.name}</strong>?</p>
-            <div className="flex gap-4"><button onClick={() => setMatchModal({ isOpen: false, opponent: null })} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-full font-bold">{dict.cancel}</button><button onClick={() => submitMatchResult(localUserId, matchModal.opponent.id)} className="flex-1 py-4 theme-gradient-r text-white font-black rounded-full active:scale-95">{dict.btn_confirm}</button></div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
