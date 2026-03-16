@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, getDocs, getDoc } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download, PauseCircle, PlayCircle, ExternalLink } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download, PauseCircle, PlayCircle } from 'lucide-react';
 
-// --- Firebase Initialization ---
 const fallbackConfig = {
   apiKey: "AIzaSyD1utJy-vxBJy8g-C6TM2iFbRmA9I5B5vw", 
   authDomain: "haifasquash-ladder.firebaseapp.com",
@@ -20,7 +19,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'haifasquash-ladder';
 
-// --- Translations Dictionary ---
 const translations = {
   he: {
     dir: 'rtl', nav_home: "בית", nav_ladder: "סולם", nav_history: "היסטוריה", nav_admin: "אדמין",
@@ -116,6 +114,7 @@ export default function App() {
   const [localUserId, setLocalUserId] = useState(localStorage.getItem(`squash_user_id_${currentClubId}`) || null);
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]); 
+  const [adminPrivateData, setAdminPrivateData] = useState({}); // הכספת הפרטית למנהלים
   
   const [leagueConfig, setLeagueConfig] = useState({ 
       displayName: "סקווש חיפה", language: "he", adminName: "ניצן מורה", 
@@ -150,7 +149,9 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState(false);
 
+  // הוספת נתיב פרטי מאובטח (privPath)
   const pPath = currentClubId === 'haifa' ? 'players' : `players_${currentClubId}`;
+  const privPath = currentClubId === 'haifa' ? 'private' : `private_${currentClubId}`;
   const mPath = currentClubId === 'haifa' ? 'matches' : `matches_${currentClubId}`;
   const cPath = currentClubId === 'haifa' ? 'config' : `config_${currentClubId}`;
 
@@ -207,6 +208,21 @@ export default function App() {
     return () => { unsubscribePlayers(); unsubscribeMatches(); unsubscribeConfig(); unsubscribeGlobalClubs(); };
   }, [user, currentClubId, pPath, mPath, cPath]);
 
+  // שאיבת נתונים פרטיים רק אם האדמין מחובר
+  useEffect(() => {
+    if (isAdmin) {
+        const fetchPrivateData = async () => {
+            try {
+                const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', privPath));
+                const data = {};
+                snap.forEach(d => { data[d.id] = d.data(); });
+                setAdminPrivateData(data);
+            } catch (e) { console.error(e); }
+        };
+        fetchPrivateData();
+    }
+  }, [isAdmin, privPath]);
+
   const activePlayers = players.filter(p => p.isActive !== false);
   const cleanPhone = (p) => p.replace(/\D/g, '');
 
@@ -218,33 +234,43 @@ export default function App() {
     return { total: playerMatches.length, wins, losses, winPercent };
   };
 
+  // ייצוא מוגן שמשתמש בכספת
   const exportPlayersToCSV = () => {
     const headers = [dict.stats_rank, dict.t_name, 'Phone', 'Email', 'ID', 'PIN', 'Status', 'Joined'];
-    const rows = players.map(p => [p.isActive === false ? 'Frozen' : p.rank, p.name, p.phone, p.email || '', p.idNumber || '', p.pin || '', p.isActive === false ? 'Frozen' : 'Active', p.joinedAt ? new Date(p.joinedAt).toLocaleDateString() : '']);
+    const rows = players.map(p => {
+        const priv = adminPrivateData[p.id] || {};
+        return [p.isActive === false ? 'Frozen' : p.rank, p.name, p.phone, priv.email || p.email || '', priv.idNumber || p.idNumber || '', priv.pin || p.pin || '', p.isActive === false ? 'Frozen' : 'Active', p.joinedAt ? new Date(p.joinedAt).toLocaleDateString() : ''];
+    });
     const csvContent = [headers.join(','), ...rows.map(e => e.map(field => `"${field}"`).join(','))].join('\n');
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `players_${currentClubId}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    link.href = url; link.setAttribute('download', `players_${currentClubId}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  const handleLogin = (e) => {
+  // התחברות מאובטחת המשתמשת בכספת
+  const handleLogin = async (e) => {
     e.preventDefault();
     const inputPhone = cleanPhone(e.target.phone.value);
     const inputPin = e.target.pin.value;
-    const found = players.find(p => cleanPhone(p.phone) === inputPhone && p.pin === inputPin);
-    if (found) {
-      localStorage.setItem(`squash_user_id_${currentClubId}`, found.id);
-      setLocalUserId(found.id); setLoginModalOpen(false); setView('ladder');
-    } else {
-      alert(lang === 'he' ? "פרטים שגויים." : "Invalid PIN.");
+    const foundPublic = players.find(p => cleanPhone(p.phone) === inputPhone);
+    
+    if (foundPublic) {
+        try {
+            const privateDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, foundPublic.id));
+            const actualPin = privateDoc.exists() ? privateDoc.data().pin : foundPublic.pin;
+            if (actualPin === inputPin) {
+                localStorage.setItem(`squash_user_id_${currentClubId}`, foundPublic.id);
+                setLocalUserId(foundPublic.id); setLoginModalOpen(false); setView('ladder');
+                return;
+            }
+        } catch (err) { console.error(err); }
     }
+    alert(dict.login_err);
   };
 
+  // הרשמה מאובטחת המפצלת נתונים
   const handleJoin = async (e) => {
     e.preventDefault();
     if (isSubmittingJoin) return;
@@ -255,7 +281,10 @@ export default function App() {
     setIsSubmittingJoin(true);
     try {
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, user.uid), {
-        name: e.target.name.value, phone, email: e.target.email.value, idNumber: e.target.idNumber.value, pin, healthDeclaration: e.target.health.checked, rulesAgreed: e.target.rulesCheck.checked, rank: activePlayers.length + 1, isActive: true, joinedAt: new Date().toISOString()
+        name: e.target.name.value, phone, rank: activePlayers.length + 1, isActive: true, joinedAt: new Date().toISOString()
+      });
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, user.uid), {
+        email: e.target.email.value, idNumber: e.target.idNumber.value, pin, healthDeclaration: e.target.health.checked, rulesAgreed: e.target.rulesCheck.checked
       });
       localStorage.setItem(`squash_user_id_${currentClubId}`, user.uid);
       setLocalUserId(user.uid); setView('ladder');
@@ -295,6 +324,13 @@ export default function App() {
     } catch (err) { console.error(err); }
   };
 
+  const openWhatsApp = (phone, myName, e) => {
+    e.stopPropagation(); 
+    const finalPhone = cleanPhone(phone).startsWith('0') ? '972' + cleanPhone(phone).substring(1) : cleanPhone(phone);
+    const t_msg = lang === 'he' ? `היי! מדבר ${myName} מליגת הסקווש. אני רוצה לעשות לך צ׳אלנג׳ למשחק במסגרת הסולם! מתי נוח לך? 🎾` : `Hi! This is ${myName} from the Squash League. Challenge! 🎾`;
+    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(t_msg)}`, '_blank');
+  };
+
   const handleAdminLogin = (e) => {
     e.preventDefault();
     if (adminUsername === 'superadmin' && adminPassword === 'master2026') { setIsSuperAdmin(true); setAdminLoginError(false); return; }
@@ -307,7 +343,87 @@ export default function App() {
     const updates = Object.keys(adminEdits).map(id => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, id), { name: adminEdits[id].name, rank: parseInt(adminEdits[id].rank, 10), isActive: adminEdits[id].isActive !== false }));
     await Promise.all(updates);
     setAdminEdits({});
-    alert(lang === 'he' ? "נשמר!" : "Saved!");
+    alert(dict.btn_save);
+  };
+
+  // מחיקת שחקן מאובטחת
+  const adminDeletePlayer = async (playerId) => {
+    if (window.confirm(lang === 'he' ? "מחיקה סופית?" : "Delete player?")) {
+      try {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, playerId));
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, playerId));
+        setAdminEdits(prev => { const newEdits = {...prev}; delete newEdits[playerId]; return newEdits; });
+      } catch (err) { console.error(err); }
+    }
+  };
+
+  // איפוס קוד מאובטח
+  const adminResetPin = async (playerId) => {
+      const newPin = prompt("Enter 4-digit PIN:");
+      if (newPin && newPin.length === 4 && /^\d+$/.test(newPin)) {
+          try {
+              const privRef = doc(db, 'artifacts', appId, 'public', 'data', privPath, playerId);
+              const privDoc = await getDoc(privRef);
+              if (privDoc.exists()) { await updateDoc(privRef, { pin: newPin }); } 
+              else { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, playerId), { pin: newPin }); }
+              setAdminPrivateData(prev => ({...prev, [playerId]: {...(prev[playerId]||{}), pin: newPin}}));
+              alert("PIN Reset!");
+          } catch (err) { console.error(err); }
+      }
+  }
+
+  const adminDeleteMatch = async (match) => {
+    if (window.confirm("Delete match?")) {
+      try {
+        if (match.playersSnapshot) {
+           const updates = match.playersSnapshot.map(p => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, p.id), { rank: p.rank }));
+           await Promise.all(updates);
+        }
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', mPath, match.id));
+      } catch (err) { console.error(err); }
+    }
+  };
+
+  const adminReverseMatch = async (match) => {
+    if (!match.playersSnapshot) { alert("No history."); return; }
+    if (window.confirm("Reverse match?")) {
+       try {
+          const newWinnerId = match.loserId; const newLoserId = match.winnerId;
+          let currentPlayersState = [...match.playersSnapshot].sort((a,b) => a.rank - b.rank);
+          const winnerIdx = currentPlayersState.findIndex(p => p.id === newWinnerId);
+          const loserIdx = currentPlayersState.findIndex(p => p.id === newLoserId);
+          if (winnerIdx !== -1 && loserIdx !== -1) {
+              if (currentPlayersState[winnerIdx].rank > currentPlayersState[loserIdx].rank) {
+                  const winnerObj = currentPlayersState.splice(winnerIdx, 1)[0];
+                  currentPlayersState.splice(loserIdx, 0, winnerObj);
+                  currentPlayersState.forEach((p, index) => { p.rank = index + 1; });
+              }
+              const updates = currentPlayersState.map(p => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, p.id), { rank: p.rank }));
+              await Promise.all(updates);
+          }
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', mPath, match.id), { winnerId: newWinnerId, loserId: newLoserId, winnerName: match.loserName, loserName: match.winnerName });
+       } catch(e) { console.error(e); }
+    }
+  };
+
+  const saveAdminConfig = async () => {
+    try {
+      const newConfig = { displayName: adminConfigEdit.displayName, language: adminConfigEdit.language || 'he', adminName: adminConfigEdit.adminName, adminPhone: adminConfigEdit.adminPhone, adminPassword: adminConfigEdit.adminPassword || "squash2026", whatsappGroupLink: adminConfigEdit.whatsappGroupLink || "", themePrimary: adminConfigEdit.themePrimary, themeSecondary: adminConfigEdit.themeSecondary };
+      if (leagueConfig.docId) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', cPath, leagueConfig.docId), newConfig); } 
+      else { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', cPath), newConfig); }
+      alert(dict.btn_save);
+    } catch (err) { console.error(err); }
+  };
+
+  const adminResetLeague = async () => {
+    if (!confirmResetChecked) return;
+    try {
+      const playerDeletions = players.map(p => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, p.id)));
+      const privDeletions = players.map(p => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, p.id)));
+      const matchDeletions = matches.map(m => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', mPath, m.id)));
+      await Promise.all([...playerDeletions, ...privDeletions, ...matchDeletions]);
+      setShowResetModal(false); setConfirmResetChecked(false);
+    } catch (err) { console.error(err); }
   };
 
   const handleCreateClub = async (e) => {
@@ -320,6 +436,8 @@ export default function App() {
           alert(`Created: /${clubId}`); setNewClubForm({ id: '', name: '', password: '', language: 'he', adminName: '' });
       } catch (err) { console.error(err); }
   };
+
+  const switchClubContext = (clubId) => { window.location.href = `/${clubId}`; }
 
   const themeStyles = `
       :root {
@@ -349,6 +467,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0A0410] text-white pb-24 relative overflow-hidden" dir={dict.dir}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap'); * { font-family: 'Heebo', sans-serif; } .custom-scrollbar::-webkit-scrollbar { width: 6px; } ${themeStyles}`}</style>
       <main className="max-w-xl mx-auto p-5 relative z-10">
+        
         {view === 'home' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8 text-start">
             <div className="text-center pt-8 pb-2 relative">
@@ -393,6 +512,7 @@ export default function App() {
             )}
           </div>
         )}
+
         {view === 'join' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8 mt-6 text-start">
             <div className="bg-gradient-to-br from-[#0A0410]/90 to-[#1B0B2E]/90 backdrop-blur-xl p-7 rounded-[32px] shadow-2xl border theme-border-secondary-30 relative overflow-hidden">
@@ -410,6 +530,7 @@ export default function App() {
             </div>
           </div>
         )}
+
         {view === 'ladder' && (
           <div className="space-y-4 pb-8 mt-4 animate-in fade-in duration-300">
             <div className="text-center pb-6 relative"><h2 className="text-3xl font-black text-white relative z-10 flex justify-center items-center gap-3"><List className="theme-text-secondary" size={32} /> {dict.ladder_title}</h2>{!myPlayer ? (<p className="theme-text-secondary mt-2 text-sm relative z-10">{dict.login_required}</p>) : myPlayer.isActive === false ? (<p className="text-amber-400 mt-2 text-sm relative z-10">{dict.frozen_alert}</p>) : null}</div>
@@ -424,6 +545,7 @@ export default function App() {
             ))}
           </div>
         )}
+
         {view === 'history' && (
           <div className="space-y-6 pb-8 mt-4 animate-in fade-in duration-300">
             <h2 className="text-3xl font-black text-white text-center flex justify-center items-center gap-3"><RefreshCw className="theme-text-primary" size={32} /> {dict.history_title}</h2>
@@ -442,6 +564,7 @@ export default function App() {
             </div>
           </div>
         )}
+
         {view === 'admin' && (
           <div className="space-y-6 pb-8 animate-in fade-in duration-300 text-start">
             {isSuperAdmin ? (
@@ -498,9 +621,31 @@ export default function App() {
                       <td className="p-2 text-center"><button onClick={() => setAdminSelectedPlayer(player)} className="text-[#A594BA] hover:text-white"><Eye size={18} /></button></td>
                       <td className="p-2 flex flex-col gap-1 items-start"><input type="number" value={adminEdits[player.id]?.rank ?? player.rank} onChange={(e) => handleAdminEditChange(player.id, 'rank', e.target.value)} className="w-16 px-2 py-1 bg-[#0A0410]/50 border border-white/10 rounded-lg text-center text-white" /><label className="text-[8px] text-[#A594BA]"><input type="checkbox" checked={adminEdits[player.id]?.isActive ?? player.isActive} onChange={(e) => handleAdminEditChange(player.id, 'isActive', e.target.checked)} className="accent-emerald-500" /> {dict.active_checkbox}</label></td>
                       <td className="p-2 text-start"><input type="text" value={adminEdits[player.id]?.name ?? player.name} onChange={(e) => handleAdminEditChange(player.id, 'name', e.target.value)} className="w-full px-3 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" /></td>
-                      <td className="p-2 text-center"><button onClick={() => { if(window.confirm('Delete?')) { deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, player.id)); } }} className="text-[#FF0055] p-2"><Trash2 size={16}/></button></td>
+                      <td className="p-2 text-center"><button onClick={() => adminDeletePlayer(player.id)} className="text-[#FF0055] p-2"><Trash2 size={16}/></button></td>
                     </tr>
                   ))}</tbody></table></div>
+                </div>
+                <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10">
+                  <h2 className="text-xl font-black text-white border-b border-white/10 pb-4 flex items-center gap-2 mb-4"><RefreshCw className="theme-text-primary" /> {dict.manage_history}</h2>
+                  <div className="overflow-x-auto"><table className="w-full text-start"><thead><tr className="text-[#A594BA] text-sm border-b border-white/10"><th className="p-3 font-medium text-white text-start">{dict.winner}</th><th className="p-3 font-medium text-[#A594BA] text-start">{dict.loser}</th><th className="p-3 font-medium text-center">+/-</th></tr></thead><tbody>{matches.length === 0 ? (<tr><td colSpan="3" className="p-4 text-center text-slate-500">No Matches</td></tr>) : matches.map(match => (
+                    <tr key={match.id} className="border-b border-white/5 hover:bg-white/5 transition-colors text-sm">
+                      <td className="p-3 font-bold text-white text-start">{match.winnerName}</td><td className="p-3 text-[#A594BA] text-start">{match.loserName}</td>
+                      <td className="p-3 text-center flex justify-center gap-3"><button onClick={() => adminReverseMatch(match)} className="text-yellow-500 hover:text-white bg-yellow-500/10 p-2 rounded-full"><RotateCcw size={16} /></button><button onClick={() => adminDeleteMatch(match)} className="text-[#FF0055] hover:text-white bg-[#FF0055]/10 p-2 rounded-full"><Trash2 size={16} /></button></td>
+                    </tr>
+                  ))}</tbody></table></div>
+                </div>
+                <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10">
+                   <h2 className="text-xl font-black text-white border-b border-white/10 pb-4 flex items-center gap-2 mb-4"><Info className="theme-text-primary" /> {dict.club_settings}</h2>
+                   <div className="space-y-4">
+                       <div><label className="block text-sm text-[#A594BA] mb-1">{dict.s_name}</label><input type="text" value={adminConfigEdit?.displayName || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, displayName: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" /></div>
+                       <div className="flex gap-4"><div className="flex-1"><label className="block text-sm text-[#A594BA] mb-1">{dict.s_color1}</label><div className="flex items-center gap-3 bg-[#0A0410]/50 border border-white/10 rounded-xl px-3 py-2"><input type="color" value={adminConfigEdit?.themePrimary || '#8A2BE2'} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, themePrimary: e.target.value})} className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 shrink-0" /><span className="text-white text-sm" dir="ltr">{adminConfigEdit?.themePrimary}</span></div></div><div className="flex-1"><label className="block text-sm text-[#A594BA] mb-1">{dict.s_color2}</label><div className="flex items-center gap-3 bg-[#0A0410]/50 border border-white/10 rounded-xl px-3 py-2"><input type="color" value={adminConfigEdit?.themeSecondary || '#E020A3'} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, themeSecondary: e.target.value})} className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 shrink-0" /><span className="text-white text-sm" dir="ltr">{adminConfigEdit?.themeSecondary}</span></div></div></div>
+                       <div><label className="block text-sm text-[#A594BA] mb-1">{dict.s_admin}</label><input type="text" value={adminConfigEdit?.adminName || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminName: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" /></div>
+                       <div><label className="block text-sm text-[#A594BA] mb-1">{dict.s_admin_pass}</label><input type="text" value={adminConfigEdit?.adminPassword || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminPassword: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" dir="ltr" /></div>
+                       <div><label className="block text-sm text-[#A594BA] mb-1">{dict.s_phone}</label><input type="tel" value={adminConfigEdit?.adminPhone || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminPhone: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" dir="ltr" /></div>
+                       <div><label className="block text-sm text-[#A594BA] mb-1">{dict.s_wa}</label><input type="url" value={adminConfigEdit?.whatsappGroupLink || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, whatsappGroupLink: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white" dir="ltr" /></div>
+                       <button onClick={saveAdminConfig} className="bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold w-full mt-2">{dict.btn_save_settings}</button>
+                       <div className="pt-6 mt-4 border-t border-white/10"><button onClick={() => {setShowResetModal(true); setConfirmResetChecked(false);}} className="w-full bg-red-500/10 text-red-500 font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2"><AlertTriangle size={18} /> {dict.btn_reset_league}</button></div>
+                   </div>
                 </div>
               </div>
             )}
@@ -508,9 +653,10 @@ export default function App() {
         )}
       </main>
 
+      {/* Modals */}
       {loginModalOpen && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()} dir={dict.dir}>
             <button onClick={() => setLoginModalOpen(false)} className="absolute top-4 start-4 text-[#A594BA]">✕</button>
             <h3 className="text-2xl font-black text-center text-white mb-6">{dict.btn_login}</h3>
             <form onSubmit={handleLogin}><input required type="tel" name="phone" placeholder={dict.f_phone} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-3" dir="ltr" /><input required type="password" name="pin" placeholder={dict.f_pin_ph} maxLength={4} className="w-full bg-[#0A0410]/50 text-white px-5 py-4 border border-white/10 rounded-2xl mb-4 text-center tracking-[0.5em]" dir="ltr" /><button type="submit" className="w-full theme-gradient-r text-white font-black py-4 rounded-full active:scale-95 mb-2">{dict.btn_login}</button></form>
@@ -518,24 +664,35 @@ export default function App() {
         </div>
       )}
 
+      {statsModalPlayer && (
+        <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50" onClick={() => setStatsModalPlayer(null)}>
+          <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-20 h-20 mx-auto theme-gradient-br rounded-full flex items-center justify-center text-3xl font-black text-white mb-4">{statsModalPlayer.isActive === false ? '-' : statsModalPlayer.rank}</div>
+            <h3 className="text-2xl font-black text-white mb-6">{statsModalPlayer.name}</h3>
+            <div className="grid grid-cols-2 gap-4"><div className="bg-white/5 rounded-2xl p-4"><div>{getPlayerStats(statsModalPlayer.id).total}</div><div className="text-xs text-[#A594BA]">{dict.stats_matches}</div></div><div className="bg-white/5 rounded-2xl p-4"><div>{getPlayerStats(statsModalPlayer.id).winPercent}%</div><div className="text-xs text-[#A594BA]">{dict.stats_winrate}</div></div></div>
+            <button onClick={() => setStatsModalPlayer(null)} className="w-full mt-6 bg-white/10 py-3 rounded-full text-white">{dict.close}</button>
+          </div>
+        </div>
+      )}
+
       {adminSelectedPlayer && (
-        <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setAdminSelectedPlayer(null)}>
-          <div className="bg-[#1B0B2E] border border-[#FF0055]/30 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative text-start" dir={dict.dir}>
+        <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50" onClick={() => setAdminSelectedPlayer(null)}>
+          <div className="bg-[#1B0B2E] border border-[#FF0055]/30 rounded-[32px] p-8 max-w-sm w-full relative text-start" dir={dict.dir} onClick={e => e.stopPropagation()}>
             <button onClick={() => setAdminSelectedPlayer(null)} className="absolute top-5 start-5 text-[#A594BA]">✕</button>
             <h3 className="text-xl font-black text-white mb-6 border-b border-white/10 pb-4">{dict.player_details}</h3>
             <div className="space-y-4 text-sm text-white">
               <div><span className="text-[#A594BA] block text-xs">{dict.p_name}</span><strong>{adminSelectedPlayer.name}</strong></div>
               <div><span className="text-[#A594BA] block text-xs">{dict.p_phone}</span><strong dir="ltr">{adminSelectedPlayer.phone}</strong></div>
-              <div><span className="text-[#A594BA] block text-xs">{dict.p_email}</span><strong dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || adminSelectedPlayer.email || '-'}</strong></div>
-              <div><span className="text-[#A594BA] block text-xs">ID Number</span><strong dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.idNumber || adminSelectedPlayer.idNumber || '-'}</strong></div>
-              <div><span className="text-[#A594BA] block text-xs">PIN Code</span><strong className="font-mono">{adminPrivateData[adminSelectedPlayer.id]?.pin || adminSelectedPlayer.pin || '-'}</strong></div>
+              <div><span className="text-[#A594BA] block text-xs">{dict.p_email}</span><strong dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || '-'}</strong></div>
+              <div><span className="text-[#A594BA] block text-xs">ID Number</span><strong dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.idNumber || '-'}</strong></div>
+              <div><span className="text-[#A594BA] block text-xs">PIN Code</span><strong className="font-mono">{adminPrivateData[adminSelectedPlayer.id]?.pin || '-'}</strong></div>
             </div>
           </div>
         </div>
       )}
 
       {showRulesModal && (
-        <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in" onClick={() => setShowRulesModal(false)}>
+        <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[60]" onClick={() => setShowRulesModal(false)}>
            <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-6 max-w-md w-full shadow-2xl relative max-h-[80vh] overflow-y-auto text-start" onClick={e => e.stopPropagation()} dir={dict.dir}>
                <h3 className="text-2xl font-black text-white mb-4 border-b border-white/10 pb-4">{dict.rules_modal_title}</h3>
                <div className="text-[#A594BA] space-y-4 text-sm leading-relaxed">
@@ -550,12 +707,24 @@ export default function App() {
         </div>
       )}
 
+      {showResetModal && (
+        <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[70]" onClick={() => setShowResetModal(false)}>
+          <div className="bg-[#1B0B2E] border border-red-500/50 rounded-[32px] p-6 max-w-md w-full relative text-start" onClick={e => e.stopPropagation()} dir={dict.dir}>
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500"><AlertTriangle size={32} /></div>
+            <h3 className="text-2xl font-black text-center text-white mb-2">{dict.reset_modal_title}</h3>
+            <p className="text-center text-[#A594BA] mb-6">{dict.reset_modal_sub}</p>
+            <div className="flex items-start gap-3 mb-6 bg-red-500/10 p-4 rounded-xl border border-red-500/20"><input type="checkbox" checked={confirmResetChecked} onChange={(e) => setConfirmResetChecked(e.target.checked)} className="mt-1 w-5 h-5 accent-red-500" /><label className="text-sm text-white">{dict.reset_modal_confirm} {currentClubId}.</label></div>
+            <div className="flex gap-3"><button onClick={() => setShowResetModal(false)} className="flex-1 bg-white/5 text-white font-bold py-3 rounded-full border border-white/10">{dict.cancel}</button><button onClick={adminResetLeague} disabled={!confirmResetChecked} className={`flex-1 font-bold py-3 rounded-full ${confirmResetChecked ? 'bg-red-500 text-white' : 'bg-red-500/30 text-white/50'}`}>{dict.btn_delete_all}</button></div>
+          </div>
+        </div>
+      )}
+
       {matchModal.isOpen && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full text-center">
             <h3 className="text-2xl font-black text-white mb-4">{dict.confirm_win_title}</h3>
             <p className="text-[#A594BA] mb-8">{dict.confirm_win_text} <strong className="text-white">{matchModal.opponent?.name}</strong>?</p>
-            <div className="flex gap-4"><button onClick={() => setMatchModal({ isOpen: false, opponent: null })} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-full">{dict.cancel}</button><button onClick={() => submitMatchResult(localUserId, matchModal.opponent.id)} className="flex-1 py-4 theme-gradient-r text-white font-black rounded-full active:scale-95">{dict.btn_confirm}</button></div>
+            <div className="flex gap-4"><button onClick={() => setMatchModal({ isOpen: false, opponent: null })} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-full font-bold">{dict.cancel}</button><button onClick={() => submitMatchResult(localUserId, matchModal.opponent.id)} className="flex-1 py-4 theme-gradient-r text-white font-black rounded-full active:scale-95">{dict.btn_confirm}</button></div>
           </div>
         </div>
       )}
