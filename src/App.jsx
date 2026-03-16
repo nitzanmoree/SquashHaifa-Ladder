@@ -131,9 +131,9 @@ const hexToRgb = (hex) => {
 }
 
 export default function App() {
-  // זיהוי המועדון מה-URL (הכנה לסופר אדמין)
-  const urlParams = new URLSearchParams(window.location.search);
-  const clubFromUrl = urlParams.get('club') || 'haifa';
+  // זיהוי המועדון מהנתיב (ה-URL הנקי)
+  const pathSegments = window.location.pathname.split('/').filter(Boolean);
+  const clubFromUrl = pathSegments.length > 0 ? pathSegments[0] : 'haifa';
   const [currentClubId, setCurrentClubId] = useState(clubFromUrl);
 
   const [user, setUser] = useState(null);
@@ -770,7 +770,7 @@ export default function App() {
               themeSecondary: "#E020A3"
           });
 
-          alert(`Club Created! Link: ?club=${clubId}`);
+          alert(lang === 'he' ? `המועדון הוקם! הלינק שלו: /${clubId}` : `Club Created! Link: /${clubId}`);
           setNewClubForm({ id: '', name: '', password: '', language: 'he', adminName: '' });
       } catch (err) {
           console.error("Error creating club:", err);
@@ -840,7 +840,7 @@ export default function App() {
 
   const switchClubContext = (clubId) => {
       // חזרנו לשיטה המקורית שעבדה אצלך מצוין - ריענון קל עם הלינק הנכון
-      window.location.href = `/?club=${clubId}`;
+      window.location.href = `/${clubId}`;
   }
 
   // --- Renders ---
@@ -957,7 +957,7 @@ export default function App() {
                           <div className="bg-[#0A0410]/50 p-3 rounded-xl border border-white/5 mt-1">
                               <p className="text-[10px] text-[#A594BA] mb-1 uppercase tracking-wider font-bold">{dict.direct_link}</p>
                               <p className="text-sm text-emerald-400 font-mono break-all select-all cursor-pointer" dir="ltr">
-                                  {window.location.origin}/?club={club.clubId}
+                                  {window.location.origin}/{club.clubId}
                               </p>
                           </div>
                       </div>
@@ -1095,7 +1095,7 @@ export default function App() {
                   {allClubs.filter(c => c.clubId !== currentClubId).map(club => (
                       <a 
                           key={club.clubId}
-                          href={`/?club=${club.clubId}`}
+                          href={`/${club.clubId}`}
                           className="text-xs bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors"
                       >
                           {club.displayName}
