@@ -59,7 +59,14 @@ const translations = {
     forgot_pin_title: "שכחת קוד גישה?", forgot_pin_sub: "מטעמי אבטחה, שחזור קוד מתבצע רק מול הנהלת הליגה.", btn_check_details: "בדוק פרטים",
     rules_modal_title: "תקנון", reset_modal_title: "אזהרה חמורה!", reset_modal_sub: "פעולה זו תמחק לצמיתות את כל השחקנים ואת כל היסטוריית המשחקים מהמערכת של המועדון הזה. לא ניתן לשחזר את הנתונים לאחר מכן.", reset_modal_confirm: "אני מבין/ה שפעולה זו היא בלתי הפיכה ומאשר/ת את מחיקת כל נתוני הליגה של מועדון", btn_delete_all: "מחק הכל",
     stats_rank: "מקום בסולם", stats_frozen: "שחקן לא פעיל (מוקפא)", stats_matches: "משחקים", stats_winrate: "אחוזי הצלחה", stats_wins: "ניצחונות", stats_losses: "הפסדים", h2h_title: "היסטוריה מולך (ראש בראש)", h2h_my_wins: "ניצחונות שלך", h2h_opp_wins: "ניצחונות שלו/ה",
-    player_details: "פרטי שחקן", p_frozen: "מוקפא", p_name: "שם מלא", p_phone: "מספר וואטסאפ", p_email: "אימייל", p_id: "תעודת זהות", p_health: "אישור הצהרת בריאות", p_rules: "אישור תקנון ליגה", close: "סגור"
+    player_details: "פרטי שחקן", p_frozen: "מוקפא", p_name: "שם מלא", p_phone: "מספר וואטסאפ", p_email: "אימייל", p_id: "תעודת זהות", p_health: "אישור הצהרת בריאות", p_rules: "אישור תקנון ליגה", close: "סגור",
+    // Detailed Rules Modal
+    rules_welcome: "ברוכים הבאים לליגת הסקווש! בהרשמתך לליגה, הנך מסכים/ה לתנאים הבאים:",
+    privacy_title: "1. פרטיות ושיתוף מספר טלפון", privacy_text: "לצורך תיאום המשחקים בין השחקנים, מספר הטלפון שתזין/י יהיה גלוי לשאר השחקנים הרשומים במערכת. השימוש במספר זה מותר אך ורק לצורך תיאום משחקי הליגה באמצעות אפליקציית WhatsApp.",
+    detailed_rules_title: "2. חוקי הליגה והמשחקים", dr_1: "הליגה פועלת במודל החלפה (סולם).", dr_2: "שחקן רשאי לאתגר שחקנים המדורגים עד 3 שלבים מעליו.", dr_3: "המשחקים משוחקים בשיטת 'הטוב מ-5' מערכות (עד 11 נקודות במערכה, הפרש 2 במידת הצורך).", dr_4: "על השחקן המאותגר לקבל את האתגר ולתאם משחק בתוך 7 ימים ממועד הפנייה.", dr_5: "מנצח מזין את התוצאה במערכת.", dr_6: "ניצחון של מאתגר יעניק לו את המיקום של המפסיד, והמפסיד (וכל מי שביניהם) ירד שלב אחד.", dr_7: "הזנת תוצאה שקרית תוביל להרחקה מיידית מהליגה.",
+    health_title: "3. הצהרת בריאות", health_text: "השחקן מצהיר כי הוא בריא וכשיר לפעילות ספורטיבית. הנהלת הליגה אינה אחראית לכל נזק פיזי או רפואי שייגרם במהלך המשחקים.",
+    guide_title: "4. מדריך טכני - שימוש באפליקציה", guide_login: "כניסה: לאחר ההרשמה, התחברו עם מספר הוואטסאפ וקוד ה-PIN שלכם. רק משתמשים מחוברים יכולים לבצע פעולות בסולם.", guide_challenge: "יצירת צ'אלנג': לחצו על כפתור ״צ׳אלנג׳״ ליד השחקן שתרצו לאתגר. הפעולה תפתח חלון וואטסאפ ישירות אליו עם הודעה מוכנה.", guide_report: "דיווח תוצאות: הזנת התוצאה היא באחריות המנצח בלבד. המנצח יאתר את המפסיד בסולם וילחץ על כפתור ״ניצחון״ שלידו.", guide_stats: "סטטיסטיקות: בלחיצה על כרטיסיית שחקן תוכלו לראות את הסטטיסטיקה שלו, ובלשונית 'היסטוריה' למטה תראו את כל המשחקים האחרונים ששוחקו בליגה.",
+    f_club_admin_name: "שם מנהל הליגה"
   },
   en: {
     dir: 'ltr',
@@ -98,7 +105,14 @@ const translations = {
     forgot_pin_title: "Forgot PIN?", forgot_pin_sub: "For security reasons, PIN recovery is handled by the league admin.", btn_check_details: "Check Details",
     rules_modal_title: "Regulations", reset_modal_title: "SEVERE WARNING!", reset_modal_sub: "This action will permanently delete ALL players and match history from this club's system. Data cannot be recovered.", reset_modal_confirm: "I understand this action is irreversible and confirm the deletion of all league data for club", btn_delete_all: "Delete Everything",
     stats_rank: "Ladder Rank", stats_frozen: "Inactive (Frozen)", stats_matches: "Matches", stats_winrate: "Win Rate", stats_wins: "Wins", stats_losses: "Losses", h2h_title: "Head-to-Head", h2h_my_wins: "Your Wins", h2h_opp_wins: "Their Wins",
-    player_details: "Player Details", p_frozen: "Frozen", p_name: "Full Name", p_phone: "WhatsApp", p_email: "Email", p_id: "ID", p_health: "Health Declaration", p_rules: "Rules Accepted", close: "Close"
+    player_details: "Player Details", p_frozen: "Frozen", p_name: "Full Name", p_phone: "WhatsApp", p_email: "Email", p_id: "ID", p_health: "Health Declaration", p_rules: "Rules Accepted", close: "Close",
+    // Detailed Rules Modal
+    rules_welcome: "Welcome to the Squash League! By registering, you agree to the following terms:",
+    privacy_title: "1. Privacy & Phone Number Sharing", privacy_text: "To coordinate matches, the phone number you provide will be visible to other registered players. This number is strictly for match coordination via WhatsApp.",
+    detailed_rules_title: "2. League Rules & Matches", dr_1: "The league operates on a leapfrog ladder model.", dr_2: "You can challenge players ranked up to 3 spots above you.", dr_3: "Matches are played 'Best of 5' games (up to 11 points, win by 2).", dr_4: "Challenged players must accept and schedule the match within 7 days.", dr_5: "The winner is responsible for entering the result in the system.", dr_6: "If the challenger wins, they take the loser's rank. The loser and everyone in between drops one spot.", dr_7: "Entering a false score will lead to immediate expulsion from the league.",
+    health_title: "3. Health Declaration", health_text: "The player declares they are healthy and fit for sports activities. League management is not responsible for any physical or medical injuries during matches.",
+    guide_title: "4. Technical Guide - App Usage", guide_login: "Login: After registering, log in with your WhatsApp number and PIN. Only logged-in users can perform actions on the ladder.", guide_challenge: "Challenges: Click the 'Challenge' button next to an opponent. This will open a pre-written WhatsApp message.", guide_report: "Reporting Results: The WINNER must report the score by clicking the 'Victory' button next to the loser's name.", guide_stats: "Statistics: Click on a player's card to view their stats, and use the 'History' tab to see recent matches.",
+    f_club_admin_name: "League Admin Name"
   }
 };
 
@@ -152,7 +166,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false); // מצב סופר אדמין חדש
   const [allClubs, setAllClubs] = useState([]); // רשימת כל המועדונים
-  const [newClubForm, setNewClubForm] = useState({ id: '', name: '', password: '', language: 'he' });
+  const [newClubForm, setNewClubForm] = useState({ id: '', name: '', password: '', language: 'he', adminName: '' });
   
   // Modals & States
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -748,7 +762,7 @@ export default function App() {
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', newClubConfigPath), {
               displayName: newClubForm.name,
               language: newClubForm.language || 'he',
-              adminName: "Admin",
+              adminName: newClubForm.adminName || "Admin",
               adminPhone: "",
               adminPassword: newClubForm.password || "123456",
               whatsappGroupLink: "",
@@ -757,7 +771,7 @@ export default function App() {
           });
 
           alert(`Club Created! Link: ?club=${clubId}`);
-          setNewClubForm({ id: '', name: '', password: '', language: 'he' });
+          setNewClubForm({ id: '', name: '', password: '', language: 'he', adminName: '' });
       } catch (err) {
           console.error("Error creating club:", err);
           alert("שגיאה בהקמת המועדון.");
@@ -869,15 +883,25 @@ export default function App() {
                   </div>
                   {/* השדה החדש - בחירת שפה */}
                   <div>
-                      <label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_lang}</label>
+                      <label className="block text-[#A594BA] text-xs mb-1 font-bold flex items-center gap-1"><Globe size={12}/> {dict.f_club_lang}</label>
                       <select 
                           value={newClubForm.language} 
                           onChange={(e) => setNewClubForm({...newClubForm, language: e.target.value})} 
-                          className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors"
+                          className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors appearance-none cursor-pointer"
                       >
                           <option value="he">עברית (Hebrew RTL)</option>
                           <option value="en">English (LTR)</option>
                       </select>
+                  </div>
+                  {/* שדה חדש - מנהל הליגה */}
+                  <div>
+                      <label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_admin_name}</label>
+                      <input 
+                          type="text" 
+                          value={newClubForm.adminName}
+                          onChange={(e) => setNewClubForm({...newClubForm, adminName: e.target.value})}
+                          className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors"
+                      />
                   </div>
                   <div>
                       <label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_pass}</label>
@@ -1529,15 +1553,34 @@ export default function App() {
           <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in" onClick={() => setShowRulesModal(false)}>
               <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-6 max-w-md w-full shadow-2xl relative max-h-[80vh] overflow-y-auto custom-scrollbar text-start" onClick={e => e.stopPropagation()} dir={dict.dir}>
                   <button onClick={() => setShowRulesModal(false)} className="absolute top-4 start-4 text-[#A594BA] hover:text-white bg-white/5 rounded-full p-1">✕</button>
-                  <h3 className="text-2xl font-black text-white mb-4 border-b border-white/10 pb-4">{dict.rules_modal_title}</h3>
+                  <h3 className="text-2xl font-black text-white mb-4 border-b border-white/10 pb-4">{dict.rules_modal_title} {leagueConfig.displayName}</h3>
                   
                   <div className="text-[#A594BA] space-y-4 text-sm leading-relaxed">
-                      <p>{dict.rules_subtitle}</p>
+                      <p>{dict.rules_welcome}</p>
                       
+                      <h4 className="text-white font-bold mt-4">{dict.privacy_title}</h4>
+                      <p>{dict.privacy_text}</p>
+                      
+                      <h4 className="text-white font-bold mt-4">{dict.detailed_rules_title}</h4>
                       <ul className="list-disc ps-5 space-y-2">
-                          <li>{dict.rule1_text}</li>
-                          <li>{dict.rule2_text}</li>
-                          <li>{dict.rule3_text}</li>
+                          <li>{dict.dr_1}</li>
+                          <li>{dict.dr_2}</li>
+                          <li>{dict.dr_3}</li>
+                          <li>{dict.dr_4}</li>
+                          <li>{dict.dr_5}</li>
+                          <li>{dict.dr_6}</li>
+                          <li>{dict.dr_7}</li>
+                      </ul>
+
+                      <h4 className="text-white font-bold mt-4">{dict.health_title}</h4>
+                      <p>{dict.health_text}</p>
+                      
+                      <h4 className="text-white font-bold mt-4">{dict.guide_title}</h4>
+                      <ul className="list-disc ps-5 space-y-2">
+                          <li><strong className="text-white">{dict.guide_login.split(':')[0]}:</strong> {dict.guide_login.split(':')[1]}</li>
+                          <li><strong className="text-white">{dict.guide_challenge.split(':')[0]}:</strong> {dict.guide_challenge.split(':')[1]}</li>
+                          <li><strong className="text-white">{dict.guide_report.split(':')[0]}:</strong> {dict.guide_report.split(':')[1]}</li>
+                          <li><strong className="text-white">{dict.guide_stats.split(':')[0]}:</strong> {dict.guide_stats.split(':')[1]}</li>
                       </ul>
 
                       <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10 text-center">
