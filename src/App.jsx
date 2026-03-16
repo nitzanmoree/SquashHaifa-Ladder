@@ -62,9 +62,9 @@ const translations = {
     player_details: "פרטי שחקן", p_frozen: "מוקפא", p_name: "שם מלא", p_phone: "וואטסאפ", p_email: "אימייל", p_id: "ת.ז", p_health: "הצהרת בריאות", p_rules: "תקנון", close: "סגור",
     rules_welcome: "ברוכים הבאים לליגה! בהרשמתך הנך מסכים/ה לתנאים הבאים:",
     privacy_title: "1. פרטיות", privacy_text: "מספר הטלפון יהיה גלוי לשחקנים אחרים לצורך תיאום משחקים בלבד.",
-    detailed_rules_title: "2. חוקים", dr_1: "מודל החלפה (סולם).", dr_2: "אתגר עד 3 שלבים מעל.", dr_3: "הטוב מ-5.", dr_4: "תיאום תוך 7 ימים.", dr_5: "מנצח מזין תוצאה.", dr_6: "המנצח תופס את מקום המפסיד.", dr_7: "דיווח שקרי גורר הרחקה.",
-    health_title: "3. בריאות", health_text: "השחקן כשיר לפעילות. ההנהלה אינה אחראית לנזק גופני.",
-    guide_title: "4. מדריך", guide_login: "כניסה: התחבר עם טלפון ו-PIN.", guide_challenge: "אתגר: לחץ 'צ'אלנג' לשליחת וואטסאפ.", guide_report: "דיווח: המנצח לוחץ 'ניצחון' ליד שם המפסיד.", guide_stats: "סטטיסטיקות: לחץ על שחקן לראות ביצועים."
+    detailed_rules_title: "2. חוקי הליגה והמשחקים", dr_1: "הליגה פועלת במודל החלפה (סולם).", dr_2: "שחקן רשאי לאתגר שחקנים המדורגים עד 3 שלבים מעליו.", dr_3: "המשחקים משוחקים בשיטת 'הטוב מ-5' מערכות.", dr_4: "על השחקן המאותגר לקבל את האתגר ולתאם משחק בתוך 7 ימים.", dr_5: "מנצח מזין את התוצאה במערכת.", dr_6: "ניצחון של מאתגר יעניק לו את המיקום של המפסיד.", dr_7: "הזנת תוצאה שקרית תוביל להרחקה מיידית מהליגה.",
+    health_title: "3. בריאות", health_text: "השחקן מצהיר כי הוא בריא וכשיר לפעילות ספורטיבית. הנהלת הליגה אינה אחראית לכל נזק פיזי.",
+    guide_title: "4. מדריך טכני", guide_login: "כניסה: התחברו עם מספר הוואטסאפ וקוד ה-PIN שלכם.", guide_challenge: "יצירת צ'אלנג': לחצו על כפתור ״צ׳אלנג׳״ ליד שחקן.", guide_report: "דיווח תוצאות: המנצח בלבד לוחץ על כפתור ״ניצחון״.", guide_stats: "סטטיסטיקות: בלחיצה על שחקן תוכלו לראות את ביצועיו."
   },
   en: {
     dir: 'ltr',
@@ -72,43 +72,43 @@ const translations = {
     arena_subtitle: "Official Ladder Arena", hello: "Hello",
     account_frozen: "Your account is frozen.",
     btn_to_ladder: "Go to Ladder", btn_view_ladder: "View Ladder",
-    btn_login: "Member Login", btn_join: "Join League",
+    btn_login: "Login", btn_join: "Join League",
     rules_title: "League Rules", rules_subtitle: "The ladder lives through you! Play matches to climb.",
     rule1_title: "Challenge:", rule1_text: "Challenge up to 3 ranks above you. Must be accepted within 7 days. Best of 5.",
-    rule2_title: "Victory:", rule2_text: "Won? You take their rank! The loser and everyone between drops 1 spot.",
-    rule3_title: "Reporting:", rule3_text: "ONLY the winner reports the result by clicking 'Victory' on the ladder.",
-    btn_full_rules: "Full League Rules & Guide",
+    rule2_title: "Victory:", rule2_text: "Won? You take their rank! The loser drops 1 spot.",
+    rule3_title: "Reporting:", rule3_text: "ONLY the winner reports the result by clicking 'Victory'.",
+    btn_full_rules: "Full League Rules",
     admin_name: "League Admin:", admin_phone: "Contact Phone:",
     whatsapp_group: "WhatsApp Community",
-    ladder_preview: "Ladder Preview", no_active_players: "No active players yet.", show_all_ladder: "Show Full Ladder",
+    ladder_preview: "Standings Preview", no_active_players: "No active players yet.", show_all_ladder: "Show Full Ladder",
     global_network: "Global League Network",
-    join_title: "League Registration", f_name: "Full Name", f_name_ph: "First and Last Name",
-    f_phone: "WhatsApp Number", f_phone_note: "* Crucial for match coordination.",
+    join_title: "Registration", f_name: "Full Name", f_name_ph: "First & Last Name",
+    f_phone: "WhatsApp Number", f_phone_note: "* Accurate number for match coordination.",
     f_email: "Email Address", f_id: "ID / Passport",
-    f_pin: "Access Code (PIN)", f_pin_ph: "4 Digits", f_pin_note: "* For future logins.",
-    f_health: "I am fit for physical sports activities.",
-    f_rules: "I agree to the league rules.", btn_submit_join: "Enter the Ladder!", btn_joining: "Registering...",
+    f_pin: "Access Code (PIN)", f_pin_ph: "4 Digits", f_pin_note: "* Choose 4-digit code.",
+    f_health: "I am healthy and fit for sports.",
+    f_rules: "I agree to the league rules.", btn_submit_join: "Join Ladder!", btn_joining: "Registering...",
     btn_cancel: "Cancel",
-    ladder_title: "Rankings Ladder", login_required: "* Login to challenge and record victories",
+    ladder_title: "Ladder", login_required: "* Login to challenge and record victories",
     frozen_alert: "* Your account is frozen.", you: "(You)", click_stats: "Stats",
     btn_challenge: "Challenge", btn_victory: "Victory", confirm_win_title: "Confirm Victory", confirm_win_text: "Confirm victory against", btn_confirm: "Confirm", cancel: "Cancel",
-    history_title: "Recent Results", history_subtitle: "League Match History", filter_all: "All League", filter_mine: "My Matches", no_matches: "No matches.", winner: "Winner", loser: "Loser",
+    history_title: "Results", history_subtitle: "Match History", filter_all: "All", filter_mine: "Mine", no_matches: "No matches.", winner: "Winner", loser: "Loser",
     admin_login_title: "Admin Login", admin_protected: "Protected Area -", f_user: "Username", f_pass: "Password",
     login_err: "Invalid credentials", btn_admin_login: "Login", forgot_admin: "Forgot password",
-    manage_players: "Manage Players", btn_export: "Export to Excel", btn_save: "Save Changes", t_info: "Info", t_rank: "Rank", t_name: "Player Name", t_actions: "PIN/Del", active_checkbox: "Active",
-    manage_history: "Match History", club_settings: "Club Settings", s_name: "Club Name", s_color1: "Primary", s_color2: "Secondary",
-    s_admin: "Admin Name", s_admin_pass: "Password", s_phone: "Phone", s_wa: "WA Link", btn_save_settings: "Save Settings", btn_reset_league: "Factory Reset",
-    sa_title: "Global Dashboard", sa_subtitle: "Squash Clubs Management", sa_new_club: "Create New Club", f_club_id: "Club ID", f_club_name: "Display Name", f_club_lang: "Language", f_club_pass: "Admin Password", f_club_admin_name: "Admin Name", btn_create_club: "Create & Save",
-    sa_active_clubs: "Active Network Clubs", btn_manage: "Manage", btn_reset_pwd: "Reset", direct_link: "Direct Link:",
+    manage_players: "Players", btn_export: "Export", btn_save: "Save", t_info: "Info", t_rank: "Rank", t_name: "Player Name", t_actions: "PIN/Del", active_checkbox: "Active",
+    manage_history: "History", club_settings: "Club Settings", s_name: "Club Name", s_color1: "Primary", s_color2: "Secondary",
+    s_admin: "Admin Name", s_admin_pass: "Password", s_phone: "Phone", s_wa: "WA Link", btn_save_settings: "Save", btn_reset_league: "Reset Data",
+    sa_title: "Global Dashboard", sa_subtitle: "Clubs Management", sa_new_club: "New Club", f_club_id: "Club ID", f_club_name: "Name", f_club_lang: "Language", f_club_pass: "Admin Password", f_club_admin_name: "Admin Name", btn_create_club: "Create & Save",
+    sa_active_clubs: "Active Clubs", btn_manage: "Manage", btn_reset_pwd: "Reset", direct_link: "Link:",
     forgot_pin_title: "Forgot PIN?", forgot_pin_sub: "Contact admin for recovery.", btn_check_details: "Check",
-    rules_modal_title: "Regulations", reset_modal_title: "SEVERE WARNING!", reset_modal_sub: "This will delete all data permanently.", reset_modal_confirm: "Confirm deletion for", btn_delete_all: "Delete All",
-    stats_rank: "Rank", stats_frozen: "Frozen", stats_matches: "Matches", stats_winrate: "Success", stats_wins: "Wins", stats_losses: "Losses", h2h_title: "Head-to-Head", h2h_my_wins: "Yours", h2h_opp_wins: "Theirs",
-    player_details: "Player Details", p_frozen: "Frozen", p_name: "Name", p_phone: "WhatsApp", p_email: "Email", p_id: "ID", p_health: "Health", p_rules: "Rules", close: "Close",
-    rules_welcome: "Welcome! By registering, you agree to these terms:",
-    privacy_title: "1. Privacy", privacy_text: "Phone numbers are shared for coordination only.",
-    detailed_rules_title: "2. Rules", dr_1: "Ladder leapfrog model.", dr_2: "Challenge up to 3 spots.", dr_3: "Best of 5.", dr_4: "Play within 7 days.", dr_5: "Winner reports score.", dr_6: "Winner takes spot.", dr_7: "False reporting leads to ban.",
-    health_title: "3. Health", health_text: "Fit for sports. Management is not liable for injury.",
-    guide_title: "4. Guide", guide_login: "Login with WA and PIN.", guide_challenge: "Challenge via WhatsApp.", guide_report: "Winner clicks 'Victory' to update.", guide_stats: "View performance stats."
+    rules_modal_title: "Regulations", reset_modal_title: "WARNING!", reset_modal_sub: "Permanent deletion.", reset_modal_confirm: "I confirm deletion for", btn_delete_all: "Delete All",
+    stats_rank: "Rank", stats_frozen: "Frozen", stats_matches: "Matches", stats_winrate: "Win Rate", stats_wins: "Wins", stats_losses: "Losses", h2h_title: "Head-to-Head", h2h_my_wins: "Yours", h2h_opp_wins: "Theirs",
+    player_details: "Details", p_frozen: "Frozen", p_name: "Name", p_phone: "WhatsApp", p_email: "Email", p_id: "ID", p_health: "Health", p_rules: "Rules", close: "Close",
+    rules_welcome: "Welcome! Agree to terms:",
+    privacy_title: "1. Privacy", privacy_text: "WhatsApp is used for coordination.",
+    detailed_rules_title: "2. Rules", dr_1: "Leapfrog model.", dr_2: "Challenge up to 3 ranks.", dr_3: "Best of 5.", dr_4: "Play within 7 days.", dr_5: "Winner updates score.", dr_6: "Winner takes spot.", dr_7: "False info = ban.",
+    health_title: "3. Health", health_text: "Fit for sports.",
+    guide_title: "4. Technical Guide", guide_login: "Login via WA and PIN.", guide_challenge: "Challenge via WhatsApp.", guide_report: "Winner clicks 'Victory'.", guide_stats: "View stats."
   }
 };
 
@@ -546,7 +546,7 @@ export default function App() {
                 <div className="flex items-center gap-3 text-start"><div className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-lg shrink-0 ${player.rank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600' : 'bg-white/10'}`}>{player.rank}</div><div className="flex flex-col"><h3 className="font-bold text-white tracking-wide">{player.name} {myPlayer?.id === player.id && <span className="theme-text-secondary text-xs ms-1">{dict.you}</span>}</h3><span className="text-[#A594BA] text-[11px] sm:text-xs flex items-center gap-1 mt-0.5"><BarChart2 size={12}/> {dict.click_stats}</span></div></div>
                 <div className="flex flex-col gap-2 shrink-0">
                   {myPlayer && myPlayer.isActive !== false && myPlayer.id !== player.id && player.rank < myPlayer.rank && (myPlayer.rank - player.rank) <= 3 && (<button onClick={(e) => openWhatsApp(player.phone, myPlayer.name, e)} className="theme-gradient-r text-white px-5 py-2 rounded-full text-sm font-black active:scale-95 transition-all"><Zap size={16} fill="currentColor" /> {dict.btn_challenge}</button>)}
-                  {!myPlayer?.id === player.id && myPlayer && myPlayer.isActive !== false && Math.abs(myPlayer.rank - player.rank) <= 3 && (<button onClick={(e) => { e.stopPropagation(); setMatchModal({ isOpen: true, opponent: player }); }} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold transition-all border border-white/20 active:scale-95">{dict.btn_victory}</button>)}
+                  {myPlayer && myPlayer.id !== player.id && myPlayer.isActive !== false && Math.abs(myPlayer.rank - player.rank) <= 3 && (<button onClick={(e) => { e.stopPropagation(); setMatchModal({ isOpen: true, opponent: player }); }} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold transition-all border border-white/20 active:scale-95">{dict.btn_victory}</button>)}
                 </div>
               </div>
             ))}
@@ -590,6 +590,9 @@ export default function App() {
         </div>
       )}
 
+      {/* Stats Modal */}
+      {renderStatsModal()}
+
       {/* Rules Modal */}
       {showRulesModal && (
         <div className="fixed inset-0 bg-[#0A0410]/90 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in" onClick={() => setShowRulesModal(false)}>
@@ -610,7 +613,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Admin Info Modal (Shows Private Data) */}
+      {/* Admin Player Modal (Shows Private Data) */}
       {adminSelectedPlayer && (
         <div className="fixed inset-0 bg-[#0A0410]/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setAdminSelectedPlayer(null)}>
           <div className="bg-[#1B0B2E] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative text-start" onClick={e => e.stopPropagation()} dir={dict.dir}>
@@ -619,13 +622,16 @@ export default function App() {
             <div className="space-y-4 text-sm">
               <div><span className="text-[#A594BA] block text-xs">{dict.p_name}</span><strong className="text-white text-lg">{adminSelectedPlayer.name}</strong></div>
               <div><span className="text-[#A594BA] block text-xs">{dict.p_phone}</span><strong className="text-white" dir="ltr">{adminSelectedPlayer.phone}</strong></div>
-              <div><span className="text-[#A594BA] block text-xs">{dict.p_email}</span><strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || adminSelectedPlayer.email || '-'}</strong></div>
-              <div><span className="text-[#A594BA] block text-xs">{dict.p_id}</span><strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.idNumber || adminSelectedPlayer.idNumber || '-'}</strong></div>
-              <div><span className="text-[#A594BA] block text-xs">PIN Code</span><strong className="text-white font-mono">{adminPrivateData[adminSelectedPlayer.id]?.pin || adminSelectedPlayer.pin || '-'}</strong></div>
+              <div><span className="text-[#A594BA] block text-xs">{dict.p_email}</span><strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || '-'}</strong></div>
+              <div><span className="text-[#A594BA] block text-xs">{dict.p_id}</span><strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.idNumber || '-'}</strong></div>
+              <div><span className="text-[#A594BA] block text-xs">PIN Code</span><strong className="text-white font-mono">{adminPrivateData[adminSelectedPlayer.id]?.pin || '-'}</strong></div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Reset Modal */}
+      {renderResetModal()}
 
       {/* Bottom Nav */}
       {view !== 'join' && (
