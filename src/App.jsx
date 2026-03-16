@@ -86,7 +86,8 @@ const translations = {
     // Super Admin
     sa_title: "לוח בקרה ארצי", sa_subtitle: "ניהול רשת מועדוני הסקווש",
     sa_new_club: "הקמת מועדון חדש", f_club_id: "מזהה באנגלית (למשל: tlv)", f_club_name: "שם תצוגה", f_club_lang: "שפת ממשק (Language)", f_club_pass: "סיסמת הנהלה מקומית", btn_create_club: "צור מועדון ושמור",
-    sa_active_clubs: "מועדונים פעילים ברשת", btn_manage: "נהל", btn_reset_pwd: "איפוס", direct_link: "קישור ישיר להעתקה:"
+    sa_active_clubs: "מועדונים פעילים ברשת", btn_manage: "נהל", btn_reset_pwd: "איפוס", direct_link: "קישור ישיר להעתקה:",
+    back_to_global: "חזור ללוח בקרה ארצי"
   },
   en: {
     dir: 'ltr',
@@ -152,7 +153,8 @@ const translations = {
     // Super Admin
     sa_title: "Global Dashboard", sa_subtitle: "Manage Squash Network",
     sa_new_club: "Create New Club", f_club_id: "Club ID (e.g. nyc)", f_club_name: "Display Name", f_club_lang: "Language", f_club_pass: "Local Admin Password", btn_create_club: "Create & Save",
-    sa_active_clubs: "Active Network Clubs", btn_manage: "Manage", btn_reset_pwd: "Reset", direct_link: "Direct Link:"
+    sa_active_clubs: "Active Network Clubs", btn_manage: "Manage", btn_reset_pwd: "Reset", direct_link: "Direct Link:",
+    back_to_global: "Back to Global Dashboard"
   }
 };
 
@@ -172,8 +174,9 @@ const hexToRgb = (hex) => {
 export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const clubFromUrl = urlParams.get('club') || 'haifa';
+  
+  // States
   const [currentClubId, setCurrentClubId] = useState(clubFromUrl);
-
   const [user, setUser] = useState(null);
   const [localUserId, setLocalUserId] = useState(localStorage.getItem(`squash_user_id_${currentClubId}`) || null);
   const [players, setPlayers] = useState([]);
@@ -203,7 +206,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false); 
   const [allClubs, setAllClubs] = useState([]); 
-  const [newClubForm, setNewClubForm] = useState({ id: '', name: '', password: '', language: 'en' });
+  const [newClubForm, setNewClubForm] = useState({ id: '', name: '', password: '', language: 'he' });
   
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
@@ -652,12 +655,12 @@ export default function App() {
               clubId: clubId, displayName: newClubForm.name, createdAt: new Date().toISOString()
           });
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', `config_${clubId}`), {
-              displayName: newClubForm.name, language: newClubForm.language || 'en',
+              displayName: newClubForm.name, language: newClubForm.language || 'he',
               adminName: "Admin", adminPhone: "", adminPassword: newClubForm.password || "123456",
               whatsappGroupLink: "", themePrimary: "#3B82F6", themeSecondary: "#10B981"
           });
           alert(`Club Created! Link: ?club=${clubId}`);
-          setNewClubForm({ id: '', name: '', password: '', language: 'en' });
+          setNewClubForm({ id: '', name: '', password: '', language: 'he' });
       } catch (err) { console.error(err); }
   };
 
@@ -690,9 +693,19 @@ export default function App() {
       }
   };
 
+  // מעבר חלק בין מועדונים ללא ריענון עמוד ששובר את המסגרת!
+  const switchClubContext = (clubId) => {
+      window.history.pushState({}, '', `/?club=${clubId}`); // משנה URL בלי לרענן
+      setCurrentClubId(clubId); // מעדכן סטייט - זה יגרום למשיכת נתונים חדשים
+      setLocalUserId(localStorage.getItem(`squash_user_id_${clubId}`) || null);
+      setIsSuperAdmin(false); // יוצא ממצב סופר אדמין
+      setIsAdmin(true); // נכנס כמנהל המועדון הספציפי
+      setView('admin'); // מראה את פאנל הניהול
+  }
+
   // --- Renders ---
   const renderSuperAdmin = () => (
-      <div className="space-y-6 pb-8 animate-in fade-in duration-500">
+      <div className="space-y-6 pb-8 animate-in fade-in duration-500 text-start" dir={dict.dir}>
           <div className="bg-gradient-to-r from-indigo-900 to-purple-900 p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-indigo-500/30">
               <Globe size={48} className="text-white/20 absolute -end-4 -bottom-4 w-32 h-32" />
               <h2 className="text-3xl font-black text-white relative z-10 flex items-center gap-3 mb-2">{dict.sa_title}</h2>
@@ -713,8 +726,8 @@ export default function App() {
                       <input type="text" value={newClubForm.name} onChange={(e) => setNewClubForm({...newClubForm, name: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors" />
                   </div>
                   <div>
-                      <label className="block text-[#A594BA] text-xs mb-1 font-bold">{dict.f_club_lang}</label>
-                      <select value={newClubForm.language} onChange={(e) => setNewClubForm({...newClubForm, language: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors">
+                      <label className="block text-[#A594BA] text-xs mb-1 font-bold flex items-center gap-1"><Globe size={12}/> {dict.f_club_lang}</label>
+                      <select value={newClubForm.language} onChange={(e) => setNewClubForm({...newClubForm, language: e.target.value})} className="w-full bg-[#0A0410]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400 transition-colors appearance-none cursor-pointer">
                           <option value="he">עברית (Hebrew RTL)</option>
                           <option value="en">English (LTR)</option>
                       </select>
@@ -746,7 +759,7 @@ export default function App() {
                               <button onClick={() => handleResetClubPassword(club.clubId, club.displayName)} className="flex-1 sm:flex-none bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1 shrink-0">
                                   <KeyRound size={16} /> {dict.btn_reset_pwd}
                               </button>
-                              <button onClick={() => window.location.href = `/?club=${club.clubId}`} className="flex-1 sm:flex-none bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shrink-0">
+                              <button onClick={() => switchClubContext(club.clubId)} className="flex-1 sm:flex-none bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shrink-0">
                                   <Settings size={16} /> {dict.btn_manage}
                               </button>
                           </div>
@@ -1064,6 +1077,13 @@ export default function App() {
 
     return (
       <div className="space-y-6 pb-8 animate-in fade-in text-start">
+        {/* כפתור חזרה לדשבורד העולמי אם אתה מחובר כסופר אדמין */}
+        {adminUsername === 'superadmin' && (
+            <button onClick={() => setIsSuperAdmin(true)} className="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-bold py-3 px-4 rounded-xl transition-all flex justify-center items-center gap-2 mb-4">
+                <Globe size={18} /> {dict.back_to_global}
+            </button>
+        )}
+
         <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/10 relative">
           <div className="flex flex-wrap justify-between items-center mb-6 border-b border-white/10 pb-4 gap-4">
              <h2 className="text-xl font-black text-white flex items-center gap-2"><ShieldCheck className="text-[#FF0055]" /> {dict.manage_players}</h2>
