@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, getDocs, getDoc } from 'firebase/firestore';
-import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, ChevronUp, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download, PauseCircle, PlayCircle, ExternalLink } from 'lucide-react';
+import { Trophy, BookOpen, ShieldCheck, UserPlus, Trash2, Check, RefreshCw, AlertTriangle, Zap, Info, Home, List, BarChart2, LogIn, LogOut, Save, Eye, RotateCcw, KeyRound, MessageCircle, Globe, Plus, Settings, Download, PauseCircle, PlayCircle, ExternalLink } from 'lucide-react';
 
 // --- Firebase Initialization ---
 const fallbackConfig = {
@@ -53,6 +53,7 @@ const translations = {
     login_err: "פרטי התחברות שגויים", btn_admin_login: "היכנס למערכת", forgot_admin: "שכחתי סיסמת הנהלה",
     manage_players: "ניהול שחקנים", btn_export: "ייצא לאקסל", btn_save: "שמור שינויים", t_info: "מידע", t_rank: "דירוג/סטטוס", t_name: "שם שחקן", t_actions: "קוד/מחק", active_checkbox: "פעיל בסולם",
     manage_history: "ניהול היסטוריית משחקים", club_settings: "הגדרות מועדון", s_name: "שם המועדון (לתצוגה בכותרת)", s_color1: "צבע ראשי (למשל סגול)", s_color2: "צבע משני (למשל ורוד)",
+    s_logo: "קישור ללוגו מותאם אישית (URL)", s_logo_hint: "טיפ: השתמשו בקובץ PNG עם רקע שקוף, ביחס ריבוע (1:1). השאירו ריק להצגת הגביע כברירת מחדל.",
     s_admin: "שם מנהל הליגה", s_admin_pass: "סיסמת הנהלה (לכניסה לאזור זה)", s_phone: "מספר טלפון לפרסום בתקנון", s_wa: "קישור לקבוצת וואטסאפ של הליגה", btn_save_settings: "שמור הגדרות מועדון", btn_reset_league: "איפוס ליגה (מחיקת כל הנתונים)",
     sa_title: "לוח בקרה ארצי", sa_subtitle: "ניהול רשת מועדוני הסקווש", sa_new_club: "הקמת מועדון חדש", f_club_id: "מזהה באנגלית (למשל: tlv)", f_club_name: "שם תצוגה (מופיע בכותרת)", f_club_lang: "שפת הממשק (Language)", f_club_pass: "סיסמת הנהלה מקומית", btn_create_club: "צור מועדון ושמור",
     sa_active_clubs: "מועדונים פעילים ברשת", btn_manage: "נהל", btn_reset_pwd: "איפוס", direct_link: "קישור ישיר להעתקה:",
@@ -99,6 +100,7 @@ const translations = {
     login_err: "Invalid credentials", btn_admin_login: "Login to System", forgot_admin: "Forgot Admin Password",
     manage_players: "Manage Players", btn_export: "Export to Excel", btn_save: "Save Changes", t_info: "Info", t_rank: "Rank/Status", t_name: "Player Name", t_actions: "PIN/Del", active_checkbox: "Active on ladder",
     manage_history: "Manage Match History", club_settings: "Club Settings", s_name: "Club Name (Display Title)", s_color1: "Primary Color", s_color2: "Secondary Color",
+    s_logo: "Custom Logo Link (URL)", s_logo_hint: "Tip: Use a transparent PNG, square ratio (1:1). Leave empty to use default Trophy.",
     s_admin: "Admin Name", s_admin_pass: "Admin Password", s_phone: "Public Phone Number", s_wa: "WhatsApp Group Link", btn_save_settings: "Save Club Settings", btn_reset_league: "Reset League (Delete All Data)",
     sa_title: "Global Dashboard", sa_subtitle: "Squash Clubs Network Management", sa_new_club: "Create New Club", f_club_id: "Club ID (e.g., nyc)", f_club_name: "Display Name (Title)", f_club_lang: "Interface Language", f_club_pass: "Local Admin Password", btn_create_club: "Create & Save Club",
     sa_active_clubs: "Active Network Clubs", btn_manage: "Manage", btn_reset_pwd: "Reset", direct_link: "Direct link to copy:",
@@ -140,9 +142,7 @@ export default function App() {
   const [localUserId, setLocalUserId] = useState(localStorage.getItem(`squash_user_id_${currentClubId}`) || null);
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]); 
-  
-  // הסטייט החדש לאחסון נתונים פרטיים בסודיות (רק לאדמין)
-  const [adminPrivateData, setAdminPrivateData] = useState({});
+  const [adminPrivateData, setAdminPrivateData] = useState({}); // הכספת הפרטית
   
   // הגדרות ברירת מחדל לליגה
   const [leagueConfig, setLeagueConfig] = useState({ 
@@ -154,6 +154,7 @@ export default function App() {
       whatsappGroupLink: "",
       themePrimary: "#8A2BE2",
       themeSecondary: "#E020A3",
+      logoUrl: "",
       docId: null
   });
 
@@ -167,8 +168,8 @@ export default function App() {
   const [isSubmittingJoin, setIsSubmittingJoin] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false); // מצב סופר אדמין חדש
-  const [allClubs, setAllClubs] = useState([]); // רשימת כל המועדונים
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false); 
+  const [allClubs, setAllClubs] = useState([]); 
   const [newClubForm, setNewClubForm] = useState({ id: '', name: '', password: '', language: 'he', adminName: '' });
   
   // Modals & States
@@ -187,7 +188,7 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState(false);
 
-  // הגדרת נתיבי נתונים דינמיים לפי המועדון הפעיל (כולל נתיב הכספת הפרטית)
+  // הגדרת נתיבי נתונים דינמיים לפי המועדון הפעיל
   const pPath = currentClubId === 'haifa' ? 'players' : `players_${currentClubId}`;
   const privPath = currentClubId === 'haifa' ? 'private' : `private_${currentClubId}`;
   const mPath = currentClubId === 'haifa' ? 'matches' : `matches_${currentClubId}`;
@@ -224,7 +225,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    // האזנה לנתוני המועדון הנוכחי (נתונים ציבוריים בלבד)
+    // האזנה לנתוני המועדון הנוכחי (הציבוריים)
     const playersRef = collection(db, 'artifacts', appId, 'public', 'data', pPath);
     const matchesRef = collection(db, 'artifacts', appId, 'public', 'data', mPath);
     const configRef = collection(db, 'artifacts', appId, 'public', 'data', cPath);
@@ -276,6 +277,7 @@ export default function App() {
                 whatsappGroupLink: data.whatsappGroupLink || "",
                 themePrimary: data.themePrimary || "#8A2BE2",
                 themeSecondary: data.themeSecondary || "#E020A3",
+                logoUrl: data.logoUrl || "",
                 docId: snapshot.docs[0].id
             });
         } else {
@@ -289,6 +291,7 @@ export default function App() {
                  whatsappGroupLink: "",
                  themePrimary: "#8A2BE2",
                  themeSecondary: "#E020A3",
+                 logoUrl: "",
                  docId: null
              });
         }
@@ -318,7 +321,7 @@ export default function App() {
     };
   }, [user, localUserId, view, pPath, mPath, cPath]);
 
-  // שאיבת הנתונים הפרטיים (הכספת) רק כאשר מנהל מתחבר!
+  // שאיבת המידע הפרטי (רק כשהאדמין מחובר!)
   useEffect(() => {
     if (isAdmin) {
         const fetchPrivateData = async () => {
@@ -350,12 +353,10 @@ export default function App() {
     return { total: playerMatches.length, wins, losses, winPercent };
   };
 
-  // פונקציית ייצוא שחקנים לאקסל - מעודכנת לשאוב מהנתונים הפרטיים!
+  // פונקציית ייצוא שחקנים לאקסל (הכוללת מידע מהכספת)
   const exportPlayersToCSV = () => {
-    // 1. הגדרת כותרות הקובץ
     const headers = [dict.stats_rank, dict.t_name, 'Phone', 'Email', 'ID', 'PIN', 'Status', 'Health', 'Rules', 'Joined'];
     
-    // 2. מיפוי הנתונים של השחקנים (שילוב מידע ציבורי ופרטי)
     const rows = players.map(p => {
         const priv = adminPrivateData[p.id] || {};
         return [
@@ -372,13 +373,11 @@ export default function App() {
         ];
     });
 
-    // 3. בניית תוכן ה-CSV (כולל מירכאות סביב שדות כדי למנוע בעיות של פסיקים בטקסט)
     const csvContent = [
         headers.join(','),
         ...rows.map(e => e.map(field => `"${field}"`).join(','))
     ].join('\n');
 
-    // 4. יצירת קובץ והורדה (BOM \uFEFF חובה כדי שאקסל יקרא עברית תקין)
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -390,8 +389,7 @@ export default function App() {
   };
 
   // --- Actions ---
-  
-  // התחברות מאובטחת: אימות הסיסמה מול מסד הנתונים הפרטי (הכספת)
+  // התחברות מאובטחת
   const handleLogin = async (e) => {
     e.preventDefault();
     const inputPhone = cleanPhone(e.target.phone.value);
@@ -401,10 +399,7 @@ export default function App() {
     
     if (foundPublic) {
         try {
-            // שולפים רק את המסמך הספציפי של השחקן מהכספת כדי לאמת PIN
             const privateDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, foundPublic.id));
-            
-            // תאימות לאחור (לשחקני טסט ישנים שה-PIN שלהם עדיין במסמך הציבורי)
             const actualPin = privateDoc.exists() ? privateDoc.data().pin : foundPublic.pin;
 
             if (actualPin === inputPin) {
@@ -441,7 +436,7 @@ export default function App() {
     setView('home');
   };
 
-  // הרשמה מאובטחת: מפצלת את הנתונים לציבורי ולפרטי
+  // הרשמה מאובטחת ומפוצלת
   const handleJoin = async (e) => {
     e.preventDefault();
     if (isSubmittingJoin) return;
@@ -472,7 +467,6 @@ export default function App() {
     const newRank = activePlayers.length > 0 ? activePlayers.length + 1 : 1;
     
     try {
-      // 1. שמירה של הנתונים הציבוריים בלבד (מה שיוצג בסולם)
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, user.uid), {
         name,
         phone,
@@ -482,7 +476,6 @@ export default function App() {
         lastActive: new Date().toISOString()
       });
       
-      // 2. שמירה של הנתונים הרגישים בלבד בכספת (לא נגיש למשתמשים אחרים)
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, user.uid), {
         email,
         idNumber,
@@ -685,10 +678,8 @@ export default function App() {
               if (privDoc.exists()) {
                   await updateDoc(privRef, { pin: newPin });
               } else {
-                  // תאימות לאחור: אם השחקן לא בכספת, מעדכן בציבורי
                   await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, playerId), { pin: newPin });
               }
-              // מעדכן את הסטייט המקומי של האדמין כדי שיראה את השינוי מיד
               setAdminPrivateData(prev => ({...prev, [playerId]: {...(prev[playerId]||{}), pin: newPin}}));
               
               alert(lang === 'he' ? "הקוד אופס בהצלחה." : "PIN reset successfully.");
@@ -764,7 +755,8 @@ export default function App() {
           adminPassword: adminConfigEdit.adminPassword || "squash2026",
           whatsappGroupLink: adminConfigEdit.whatsappGroupLink || "",
           themePrimary: adminConfigEdit.themePrimary,
-          themeSecondary: adminConfigEdit.themeSecondary
+          themeSecondary: adminConfigEdit.themeSecondary,
+          logoUrl: adminConfigEdit.logoUrl || ""
       };
 
       if (leagueConfig.docId) {
@@ -783,10 +775,10 @@ export default function App() {
     if (!confirmResetChecked) return;
     try {
       const playerDeletions = players.map(p => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', pPath, p.id)));
-      const privateDeletions = players.map(p => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, p.id)));
+      const privDeletions = players.map(p => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', privPath, p.id)));
       const matchDeletions = matches.map(m => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', mPath, m.id)));
       
-      await Promise.all([...playerDeletions, ...privateDeletions, ...matchDeletions]);
+      await Promise.all([...playerDeletions, ...privDeletions, ...matchDeletions]);
       
       alert(lang === 'he' ? "הליגה אופסה בהצלחה." : "League reset successfully.");
       setShowResetModal(false);
@@ -824,7 +816,8 @@ export default function App() {
               adminPassword: newClubForm.password || "123456",
               whatsappGroupLink: "",
               themePrimary: "#8A2BE2",
-              themeSecondary: "#E020A3"
+              themeSecondary: "#E020A3",
+              logoUrl: ""
           });
 
           alert(lang === 'he' ? `המועדון הוקם! הלינק שלו: /${clubId}` : `Club Created! Link: /${clubId}`);
@@ -865,7 +858,6 @@ export default function App() {
 
       if (window.confirm(`אזהרה חמורה!\nהאם אתה בטוח שברצונך למחוק לחלוטין את מועדון "${clubName}"?\n\nפעולה זו תמחק את המועדון, ההגדרות, כל השחקנים וכל המשחקים שלו. פעולה זו היא בלתי הפיכה!`)) {
           try {
-              // 1. למצוא ולמחוק את המועדון מרשימת המועדונים הגלובלית
               const globalClubsRef = collection(db, 'artifacts', appId, 'public', 'data', 'global_clubs');
               const globalClubsSnapshot = await getDocs(globalClubsRef);
               const clubDocToDelete = globalClubsSnapshot.docs.find(doc => doc.data().clubId === clubId);
@@ -873,12 +865,10 @@ export default function App() {
                   await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'global_clubs', clubDocToDelete.id));
               }
 
-              // 2. למחוק את קונפיגורציית המועדון
               const configRef = collection(db, 'artifacts', appId, 'public', 'data', `config_${clubId}`);
               const configSnapshot = await getDocs(configRef);
               const configDeletions = configSnapshot.docs.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `config_${clubId}`, d.id)));
               
-              // 3. למחוק שחקנים (מהציבורי והפרטי)
               const playersRef = collection(db, 'artifacts', appId, 'public', 'data', `players_${clubId}`);
               const playersSnapshot = await getDocs(playersRef);
               const playerDeletions = playersSnapshot.docs.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `players_${clubId}`, d.id)));
@@ -887,7 +877,6 @@ export default function App() {
               const privPlayersSnapshot = await getDocs(privPlayersRef);
               const privPlayerDeletions = privPlayersSnapshot.docs.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `private_${clubId}`, d.id)));
 
-              // 4. למחוק משחקים
               const matchesRef = collection(db, 'artifacts', appId, 'public', 'data', `matches_${clubId}`);
               const matchesSnapshot = await getDocs(matchesRef);
               const matchDeletions = matchesSnapshot.docs.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `matches_${clubId}`, d.id)));
@@ -905,7 +894,6 @@ export default function App() {
 
   // --- Renders ---
   
-  // תצוגת לוח הבקרה של הסופר-אדמין (Master Dashboard)
   const renderSuperAdmin = () => (
       <div className="space-y-6 pb-8 animate-in fade-in duration-500 text-start" dir={dict.dir}>
           <div className="bg-gradient-to-r from-indigo-900 to-purple-900 p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-indigo-500/30">
@@ -916,7 +904,6 @@ export default function App() {
               <p className="text-indigo-200 relative z-10">{dict.sa_subtitle}</p>
           </div>
 
-          {/* יצירת מועדון חדש */}
           <div className="bg-white/5 p-6 rounded-[24px] border border-white/10">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-4">
                   <Plus className="text-emerald-400" /> {dict.sa_new_club}
@@ -979,7 +966,6 @@ export default function App() {
               </form>
           </div>
 
-          {/* רשימת המועדונים */}
           <h3 className="text-xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">{dict.sa_active_clubs}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {allClubs.length === 0 ? (
@@ -1029,9 +1015,16 @@ export default function App() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8 text-start" dir={dict.dir}>
       <div className="text-center pt-8 pb-2 relative">
         <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 theme-bg-secondary-20 rounded-full blur-[60px] z-0"></div>
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full theme-gradient-br mb-6 theme-glow-secondary-50 relative z-10">
-          <Trophy size={40} className="text-white" />
+        
+        {/* Logo Display Logic */}
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full theme-gradient-br mb-6 theme-glow-secondary-50 relative z-10 overflow-hidden border border-white/10 shadow-xl">
+          {leagueConfig.logoUrl ? (
+            <img src={leagueConfig.logoUrl} alt="Club Logo" className="w-full h-full object-cover" />
+          ) : (
+            <Trophy size={40} className="text-white" />
+          )}
         </div>
+
         <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#A594BA] mb-2 relative z-10 drop-shadow-sm">
           {leagueConfig.displayName}
         </h1>
@@ -1125,7 +1118,7 @@ export default function App() {
             <div className="py-6 text-[#A594BA] bg-white/5 rounded-2xl border border-white/10">{dict.no_active_players}</div>
           ) : (
             activePlayers.slice(0, 5).map(player => (
-              <div key={player.id} className="flex items-center justify-between p-4 rounded-[20px] bg-white/5 backdrop-blur-md border border-white/10">
+              <div key={player.id} onClick={() => setStatsModalPlayer(player)} className="flex items-center justify-between p-4 rounded-[20px] bg-white/5 backdrop-blur-md border border-white/10">
                 <div className="flex items-center gap-4">
                   <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm ${player.rank <= 3 ? 'theme-gradient-br text-white' : 'bg-white/10 text-white'}`}>
                     {player.rank}
@@ -1143,7 +1136,6 @@ export default function App() {
         )}
       </div>
       
-      {/* תצוגת רשת המועדונים הארצית בתחתית עמוד הבית */}
       {allClubs.length > 1 && (
           <div className="mt-6 mb-8 pt-6 border-t border-white/10 text-center">
               <p className="text-[#A594BA] text-xs uppercase tracking-widest font-bold mb-3 flex items-center justify-center gap-1">
@@ -1571,7 +1563,14 @@ export default function App() {
                    </div>
                </div>
 
-               <div className="pt-2">
+               {/* השדה החדש של הלוגו */}
+               <div className="pt-2 border-t border-white/5">
+                   <label className="block text-sm text-[#A594BA] mb-1">{dict.s_logo}</label>
+                   <input type="url" value={adminConfigEdit?.logoUrl || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, logoUrl: e.target.value})} placeholder="https://..." className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white theme-input transition-colors" dir="ltr" />
+                   <p className="text-[10px] text-[#A594BA] mt-1">{dict.s_logo_hint}</p>
+               </div>
+
+               <div className="pt-2 border-t border-white/5">
                    <label className="block text-sm text-[#A594BA] mb-1">{dict.s_admin}</label>
                    <input type="text" value={adminConfigEdit?.adminName || ''} onChange={(e) => setAdminConfigEdit({...adminConfigEdit, adminName: e.target.value})} className="w-full px-4 py-2 bg-[#0A0410]/50 border border-white/10 rounded-xl text-white theme-input text-start transition-colors" />
                </div>
@@ -1840,15 +1839,15 @@ export default function App() {
             </div>
             <div>
               <span className="text-[#A594BA] block text-xs">{dict.p_email}</span>
-              <strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || adminSelectedPlayer.email || 'לא הוזן'}</strong>
+              <strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.email || adminSelectedPlayer.email || '-'}</strong>
             </div>
             <div>
               <span className="text-[#A594BA] block text-xs">{dict.p_id}</span>
-              <strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.idNumber || adminSelectedPlayer.idNumber || 'לא הוזן'}</strong>
+              <strong className="text-white" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.idNumber || adminSelectedPlayer.idNumber || '-'}</strong>
             </div>
             <div>
               <span className="text-[#A594BA] block text-xs">PIN Code</span>
-              <strong className="text-white font-mono" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.pin || adminSelectedPlayer.pin || 'לא הוזן'}</strong>
+              <strong className="text-white font-mono" dir="ltr">{adminPrivateData[adminSelectedPlayer.id]?.pin || adminSelectedPlayer.pin || '-'}</strong>
             </div>
             
             <div className="pt-4 border-t border-white/10">
